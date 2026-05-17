@@ -1,0 +1,74 @@
+# ─── Flutter / Dart / Pub ─────────────────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+
+# ─── Android build artefacts ──────────────────────────────────────────────────
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/.gradle/
+/android/.kotlin/
+/android/local.properties
+/android/captures/
+/android/key.properties
+
+# ─── Signing keystores & secrets ──────────────────────────────────────────────
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.env
+*.env.*
+
+# ─── IDE: IntelliJ / Android Studio ──────────────────────────────────────────
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# ─── IDE: VS Code ─────────────────────────────────────────────────────────────
+# Uncomment to exclude local launch configs from version control:
+# .vscode/
+
+# ─── IDE: Xcode ───────────────────────────────────────────────────────────────
+/ios/Pods/
+/ios/.symlinks/
+/macos/Pods/
+/macos/.symlinks/
+
+# ─── Obfuscation / symbolication maps ─────────────────────────────────────────
+app.*.symbols
+app.*.map.json
+
+# ─── Claude Code ──────────────────────────────────────────────────────────────
+.agents/
+.claude/
+
+# ─── OS artefacts ─────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+Thumbs.db
+Desktop.ini
+
+# ─── Misc ─────────────────────────────────────────────────────────────────────
+*.class
+*.log
+*.pyc
+*.swp
+*.swo
+*~
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/

@@ -1,0 +1,31 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.meshcoreng.meshcli_ng"
+    compileSdk = flutter.compileSdkVersion
+
+    defaultConfig {
+        applicationId = "com.meshcoreng.meshcli_ng"
+        minSdkVersion = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    kotlinOptions {
+        jvmTarget = "21"
+    }
+}
+
+flutter {
+    source = "../.."
+}
