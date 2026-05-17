@@ -1,6 +1,6 @@
 # MeshCLI NG
 
-> 🇳🇱 Nederlandse versie: [HANDLEIDING.md](HANDLEIDING.md)
+> 🇳🇱 Nederlandse versie: [docs/HANDLEIDING.md](docs/HANDLEIDING.md)
 
 A Flutter console app for [MeshCoreNG](https://github.com/meshcore-dev) repeaters and companion radios.  
 Connect over **USB serial**, **BLE**, or **TCP**, send CLI commands, and manage your mesh node — on Android, Linux, and Windows.
@@ -193,7 +193,7 @@ lib/
 └── widgets/            # App shell, connection pill, section panel
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for a deeper explanation.  
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a deeper explanation.  
 See [docs/protocol_audit.md](docs/protocol_audit.md) for the serial/BLE framing details.
 
 ---

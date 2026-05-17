@@ -197,7 +197,7 @@ lib/
 ```
 
 Zie [ARCHITECTURE.md](ARCHITECTURE.md) voor een diepere technische uitleg.  
-Zie [docs/protocol_audit.md](docs/protocol_audit.md) voor de seriële/BLE-framingdetails.
+Zie [protocol_audit.md](protocol_audit.md) voor de seriële/BLE-framingdetails.
 
 ---
 
