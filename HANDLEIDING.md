@@ -1,5 +1,7 @@
 # MeshCLI NG — Handleiding
 
+> 🇬🇧 English version: [README.md](README.md)
+
 Een Flutter-console-app voor MeshCoreNG-repeaters en companion-radio's.  
 Verbind via **USB-serieel**, **BLE** of **TCP** en stuur CLI-commando's naar je mesh-knooppunt — op Android, Linux en Windows.
 
