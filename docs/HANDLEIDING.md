@@ -1,6 +1,6 @@
 # MeshCLI NG — Handleiding
 
-> 🇬🇧 English version: [README.md](README.md)
+> 🇬🇧 English version: [README.md](../README.md)
 
 Een Flutter-console-app voor MeshCoreNG-repeaters en companion-radio's.  
 Verbind via **USB-serieel**, **BLE** of **TCP** en stuur CLI-commando's naar je mesh-knooppunt — op Android, Linux en Windows.
@@ -17,7 +17,7 @@ MeshCLI NG geeft je een terminalvenster voor MeshCoreNG-apparaten in drie modi:
 | **Remote** | Een verre repeater bereikt via de companion over het mesh | (via companion) |
 | **-r Serieel** | Een repeater direct via USB-serieel | USB-serieel |
 
-De app heeft bewust geen chat-interface, geen contactenlijst en geen configuratie-dashboard — het is een compacte CLI-console.
+De app heeft geen chat-interface en geen contactenlijst — het is een compacte CLI-console. In de directe serieel-modus zit ook een interactief **configuratiepaneel** waarmee je alle instellingen van je repeater kunt ophalen, aanpassen en terugsturen.
 
 ---
 
@@ -97,7 +97,7 @@ Connected! Device: MijnNode  version 1.0.0-80abfbb  freq: 869.6180 MHz
 | `freq` | Radiofrequentie (MHz) | `set freq 869.5` |
 | `bw` | Bandbreedte (kHz) | `set bw 250` |
 | `sf` | Spreading factor | `set sf 10` |
-| `cr` | Codeeerverhouding | `set cr 5` |
+| `cr` | Coderingsverhouding | `set cr 5` |
 | `tx` | Zendvermogen (dBm) | `set tx 20` |
 | `repeat` | Pakketdoorschakeling aan/uit | `set repeat on` |
 | `public.key` | Publieke sleutel van het knooppunt | (alleen lezen) |
@@ -155,7 +155,7 @@ Type `help` om alle beschikbare firmware-commando's te zien.
 | Categorie | Commando's |
 |---|---|
 | Info | `ver` · `board` · `clock` · `clock sync` |
-| Radio | `get freq` · `set freq <MHz>` · `get sf` · `set sf <n>` · … |
+| Radio | `get radio` → freq, bw, sf, cr · `set freq <MHz>` · `set bw <kHz>` · `set sf <n>` · `set cr <n>` · `set tx <dBm>` |
 | Netwerk | `advert` · `advert.zerohop` · `discover.neighbors` · `neighbors` |
 | Statistieken | `stats-core` · `stats-radio` · `stats-packets` · `clear stats` |
 | Logging | `log start` · `log stop` · `log` · `log erase` |
@@ -165,6 +165,33 @@ Type `help` om alle beschikbare firmware-commando's te zien.
 | Energie | `powersaving on\|off` · `reboot` · `poweroff` · `start ota` |
 | Toegang | `get acl` · `setperm <pubkey> <rechten>` · `password <wachtwoord>` |
 | TCP-brug | `get wifi.status` → WiFi-status, IP-adres, RSSI, serververbinding |
+
+> **Let op:** `get radio` geeft `freq,bw,sf,cr` terug als één kommagescheiden waarde. De firmware heeft geen afzonderlijke `get sf`, `get bw` of `get cr` commando's — gebruik `set sf <n>` e.d. om ze individueel aan te passen.
+
+#### Configuratiepaneel
+
+Zodra je verbonden bent verschijnt de knop **Config** in de werkbalk. Klik erop — of typ `config` in het invoerveld — om een interactief paneel te openen dat:
+
+- Alle instelbare parameters ophaalt van het apparaat (gegroepeerd per categorie)
+- De huidige waarden toont in bewerkbare tekstvelden en keuzelijsten
+- Elk veld dat je wijzigt oranje markeert
+- Bij **Apply changes** alleen de gewijzigde `set`-commando's naar het apparaat stuurt en ✓ of ✗ per parameter laat zien
+- **WiFi- en brug-instellingen** herkent die een herstart vereisen: na het toepassen verschijnt een waarschuwingsbanner met een knop **Reboot now**
+
+**Parametergroepen in het configuratiepaneel:**
+
+| Sectie | Parameters |
+|---|---|
+| Identity | `name` · `owner.info` · `lat` · `lon` |
+| Radio | `freq` · `bw` · `sf` · `cr` · `tx` · `af` · `repeat` · `dutycycle` · `radio.rxgain` |
+| Advertising | `advert.interval` · `flood.advert.interval` |
+| Flood / Routing | `flood.max` · `flood.advert.base` · `flood.relay.prob` · `flood.dynamic.enable` · `path.hash.mode` · `loop.detect` · `multi.acks` · `int.thresh` · `rxdelay` · `txdelay` · `direct.txdelay` · `agc.reset.interval` |
+| Access | `guest.password` · `allow.read.only` |
+| TCP Bridge | `bridge.enabled` · `wifi.ssid` · `wifi.password` · `bridge.server` · `bridge.port` · `bridge.delay` |
+| ESPNow Bridge | `bridge.source` · `bridge.baud` · `bridge.channel` · `bridge.secret` |
+
+Het wifi-wachtwoordveld is alleen schrijven (wordt nooit van het apparaat opgehaald). Laat het leeg om het huidige wachtwoord ongewijzigd te laten.  
+Alle TCP Bridge- en ESPNow Bridge-instellingen vereisen een herstart van het apparaat voordat ze actief worden.
 
 ---
 
@@ -192,7 +219,7 @@ lib/
 │   ├── session/        # Commandowachtrij, response-matching, toestandsstreams
 │   └── transport/      # BLE, USB-serieel, desktop-serieel, TCP-transporten
 ├── features/
-│   └── console/        # Hoofdconsolescherm met de drie modi
+│   └── console/        # Hoofdconsolescherm + configuratiepaneel
 ├── shared/             # Riverpod-providers
 └── widgets/            # App-schil, verbindingspil, sectiepaneel
 ```
@@ -219,6 +246,12 @@ De app gebruikt de systeemtijd van de pc/telefoon. Zorg dat die correct is inges
 
 **Hoe weet ik de publieke sleutel van een remote repeater?**  
 Verbind eerst in Companion-modus en typ `nodes` — de lijst toont alle bekende knooppunten met hun publieke sleutel (of prefix).
+
+**De Config-knop is niet zichtbaar**  
+De Config-knop verschijnt alleen in de **-r Serial**-modus nadat je verbonden bent met een repeater.
+
+**WiFi-instellingen werken niet direct na het opslaan**  
+WiFi- en brugconfiguratie wordt pas actief na een herstart van het apparaat. Het configuratiepaneel laat dit weten en biedt de knop **Reboot now** aan.
 
 ---
 

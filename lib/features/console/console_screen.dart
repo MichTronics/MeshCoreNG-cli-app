@@ -12,6 +12,7 @@ import '../../core/packets/mesh_enums.dart';
 import '../../core/packets/mesh_event.dart';
 import '../../shared/providers.dart';
 import '../../widgets/section_panel.dart';
+import 'config_dialog.dart';
 
 enum ConsoleMode { companion, repeater, directSerialRepeater }
 
@@ -108,6 +109,10 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
         final lower = text.toLowerCase();
         if (lower == 'help') {
           _showSerialHelp();
+          return;
+        }
+        if (lower == 'config') {
+          await _openSerialConfig();
           return;
         }
         if (lower == 'clock sync') {
@@ -321,6 +326,7 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
               onScan: _scanRawSerial,
               onConnect: _connectRawSerial,
               onDisconnect: _disconnectRawSerial,
+              onConfig: _serialDeviceName != null ? _openSerialConfig : null,
             ),
           Expanded(
             child: DecoratedBox(
@@ -552,6 +558,27 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
 
   void _i(String text) => _append('INFO', text);
 
+  Future<void> _openSerialConfig() async {
+    if (_serialDeviceName == null) return;
+    final console = ref.read(rawSerialConsoleProvider);
+    final deviceName = _serialDeviceName!;
+    setState(() => _suppressRawLines = true);
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => SerialConfigDialog(
+          deviceName: deviceName,
+          queryParam: (key) => _queryRawSerial(console, 'get $key'),
+          setParam: (key, value) => _queryRawSerial(console, 'set $key $value'),
+          sendCommand: (cmd) => console.sendLine(cmd),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _suppressRawLines = false);
+    }
+  }
+
   void _showCompanionHelp() {
     _i('=== Companion mode (mesh protocol) ===');
     _i('  info               – device info + firmware + battery');
@@ -772,6 +799,7 @@ class _RawSerialToolbar extends StatelessWidget {
     required this.onScan,
     required this.onConnect,
     required this.onDisconnect,
+    this.onConfig,
   });
 
   final List<MeshDevice> devices;
@@ -780,6 +808,7 @@ class _RawSerialToolbar extends StatelessWidget {
   final VoidCallback onScan;
   final ValueChanged<MeshDevice> onConnect;
   final VoidCallback onDisconnect;
+  final VoidCallback? onConfig;
 
   @override
   Widget build(BuildContext context) {
@@ -812,6 +841,13 @@ class _RawSerialToolbar extends StatelessWidget {
               icon: const Icon(Icons.search),
               label: const Text('Scan')),
           const SizedBox(width: 8),
+          if (onConfig != null) ...[
+            FilledButton.icon(
+                onPressed: busy ? null : onConfig,
+                icon: const Icon(Icons.tune),
+                label: const Text('Config')),
+            const SizedBox(width: 8),
+          ],
           OutlinedButton.icon(
               onPressed: busy || selected == null ? null : onDisconnect,
               icon: const Icon(Icons.link_off),

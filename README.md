@@ -3,7 +3,7 @@
 > 🇳🇱 Nederlandse versie: [docs/HANDLEIDING.md](docs/HANDLEIDING.md)
 
 A Flutter console app for [MeshCoreNG](https://github.com/meshcore-dev) repeaters and companion radios.  
-Connect over **USB serial**, **BLE**, or **TCP**, send CLI commands, and manage your mesh node — on Android, Linux, and Windows.
+Connect over **USB serial**, **BLE**, or **TCP**, send CLI commands, and configure your mesh node — on Android, Linux, and Windows.
 
 ---
 
@@ -17,7 +17,7 @@ MeshCLI NG gives you a terminal-style console for MeshCoreNG devices in three mo
 | **Remote** | A remote repeater reached via the companion over the mesh | (via companion) |
 | **-r Serial** | A repeater connected directly over USB serial | USB serial |
 
-The app intentionally has no messaging UI, no node browser, and no config dashboard — it is a focused CLI console.
+The app has no messaging UI and no node browser — it is a focused CLI console. In direct serial mode it also includes an interactive **configuration panel** that reads all settings from the device, lets you edit them, and sends only the changed values.
 
 ---
 
@@ -152,7 +152,7 @@ Type `help` to see all available firmware commands.
 | Category | Commands |
 |---|---|
 | Info | `ver` · `board` · `clock` · `clock sync` |
-| Radio | `get freq` · `set freq <MHz>` · `get sf` · `set sf <n>` · … |
+| Radio | `get radio` → freq, bw, sf, cr · `set freq <MHz>` · `set bw <kHz>` · `set sf <n>` · `set cr <n>` · `set tx <dBm>` |
 | Network | `advert` · `advert.zerohop` · `discover.neighbors` · `neighbors` |
 | Statistics | `stats-core` · `stats-radio` · `stats-packets` · `clear stats` |
 | Logging | `log start` · `log stop` · `log` · `log erase` |
@@ -162,6 +162,33 @@ Type `help` to see all available firmware commands.
 | Power | `powersaving on\|off` · `reboot` · `poweroff` · `start ota` |
 | Access | `get acl` · `setperm <pubkey> <perm>` · `password <pwd>` |
 | TCP bridge | `get wifi.status` → WiFi state, IP address, RSSI, server connection |
+
+> **Note:** `get radio` returns `freq,bw,sf,cr` as a single comma-separated response. There are no individual `get sf`, `get bw`, or `get cr` commands in the firmware — use `set sf <n>` etc. to change them individually.
+
+#### Configuration panel
+
+After connecting, a **Config** button appears in the toolbar. Click it — or type `config` in the command field — to open an interactive panel that:
+
+- Reads all configurable parameters from the device (grouped by category)
+- Shows current values in editable text fields and dropdowns
+- Highlights any field you change with an orange tint
+- On **Apply changes**, sends only the modified `set` commands to the device and shows ✓ or ✗ per parameter
+- Recognises **WiFi / bridge settings** that require a reboot: after applying them a warning banner appears with a **Reboot now** button
+
+**Parameter sections in the config panel:**
+
+| Section | Parameters |
+|---|---|
+| Identity | `name` · `owner.info` · `lat` · `lon` |
+| Radio | `freq` · `bw` · `sf` · `cr` · `tx` · `af` · `repeat` · `dutycycle` · `radio.rxgain` |
+| Advertising | `advert.interval` · `flood.advert.interval` |
+| Flood / Routing | `flood.max` · `flood.advert.base` · `flood.relay.prob` · `flood.dynamic.enable` · `path.hash.mode` · `loop.detect` · `multi.acks` · `int.thresh` · `rxdelay` · `txdelay` · `direct.txdelay` · `agc.reset.interval` |
+| Access | `guest.password` · `allow.read.only` |
+| TCP Bridge | `bridge.enabled` · `wifi.ssid` · `wifi.password` · `bridge.server` · `bridge.port` · `bridge.delay` |
+| ESPNow Bridge | `bridge.source` · `bridge.baud` · `bridge.channel` · `bridge.secret` |
+
+WiFi password fields are write-only (never fetched from the device). Leave blank to keep the current password unchanged.  
+All TCP Bridge and ESPNow Bridge settings require a device reboot before they take effect.
 
 ---
 
@@ -189,7 +216,7 @@ lib/
 │   ├── session/        # Command queue, response matching, state streams
 │   └── transport/      # BLE, USB serial, desktop serial, TCP transports
 ├── features/
-│   └── console/        # Main console screen with all three modes
+│   └── console/        # Main console screen + config dialog
 ├── shared/             # Riverpod providers
 └── widgets/            # App shell, connection pill, section panel
 ```
