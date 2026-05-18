@@ -164,6 +164,7 @@ Type `help` om alle beschikbare firmware-commando's te zien.
 | Regio's | `region` · `region list` · `region get/put/remove` · … |
 | Energie | `powersaving on\|off` · `reboot` · `poweroff` · `start ota` |
 | Toegang | `get acl` · `setperm <pubkey> <rechten>` · `password <wachtwoord>` |
+| TCP-brug | `get wifi.status` → WiFi-status, IP-adres, RSSI, serververbinding |
 
 ---
 

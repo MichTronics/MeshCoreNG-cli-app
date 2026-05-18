@@ -595,6 +595,7 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('               bridge.type · bridge.enabled · bridge.delay · bridge.source');
     _i('               bridge.baud · bridge.channel · bridge.secret');
     _i('               wifi.ssid · bridge.server · bridge.port');
+    _i('               wifi.status  – TCP bridge: WiFi connected, IP, RSSI, server state');
     _i('');
     _i('  set <param> <value>: same params as get (e.g. set repeat on, set name <text>)');
     _i('               set radio <freq> <bw> <sf> <cr>  – all radio params at once');
@@ -645,7 +646,7 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('  guest.password · allow.read.only · owner.info · radio · radio.rxgain');
     _i('  bridge.type · bridge.enabled · bridge.delay · bridge.source · bridge.baud');
     _i('  bridge.channel · bridge.secret · wifi.ssid · wifi.password');
-    _i('  bridge.server · bridge.port');
+    _i('  bridge.server · bridge.port · wifi.status (TCP bridge: WiFi+IP+RSSI+server state)');
     _i('  dense.stats · power.stats · bootloader.ver · pwrmgt.*  (hardware specific)');
     _i('');
     _i('set <param> <value>:');
