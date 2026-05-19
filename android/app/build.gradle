@@ -16,6 +16,26 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        release {
+            def storePath = System.getenv("RELEASE_STORE_PATH")
+            storeFile     = storePath ? file(storePath) : null
+            storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: ""
+            keyAlias      = System.getenv("RELEASE_KEY_ALIAS")      ?: ""
+            keyPassword   = System.getenv("RELEASE_KEY_PASSWORD")   ?: ""
+        }
+    }
+
+    buildTypes {
+        release {
+            // Use release signing when the keystore path is provided (CI),
+            // fall back to debug signing for local builds.
+            signingConfig = System.getenv("RELEASE_STORE_PATH") \
+                ? signingConfigs.release \
+                : signingConfigs.debug
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
