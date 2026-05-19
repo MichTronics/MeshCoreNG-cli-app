@@ -1,14 +1,17 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../models/connection_state.dart';
 import '../../protocol/mesh_protocol.dart';
 import '../mesh_transport.dart';
 
 class BleMeshTransport implements MeshTransport {
-  BleMeshTransport({FlutterReactiveBle? ble}) : _ble = ble ?? FlutterReactiveBle();
+  BleMeshTransport({FlutterReactiveBle? ble})
+      : _ble = ble ?? FlutterReactiveBle();
 
   final FlutterReactiveBle _ble;
   final _frames = StreamController<Uint8List>.broadcast();
@@ -27,14 +30,17 @@ class BleMeshTransport implements MeshTransport {
   Stream<MeshConnectionSnapshot> get states => _states.stream;
 
   @override
-  Future<List<MeshDevice>> scan({Duration timeout = const Duration(seconds: 4)}) async {
+  Future<List<MeshDevice>> scan(
+      {Duration timeout = const Duration(seconds: 4)}) async {
     _lastScan.clear();
-    _states.add(const MeshConnectionSnapshot(status: MeshConnectionStatus.scanning, transportType: MeshTransportType.ble));
+    _states.add(const MeshConnectionSnapshot(
+        status: MeshConnectionStatus.scanning,
+        transportType: MeshTransportType.ble));
+    await _ensureReadyForScan();
     final done = Completer<void>();
-    _scanSub = _ble
-        .scanForDevices(withServices: [Uuid.parse(MeshBleUuids.uartService)], scanMode: ScanMode.lowLatency)
-        .listen((device) {
-      if (device.name.startsWith('MeshCore') || device.serviceUuids.map((u) => u.toString().toUpperCase()).contains(MeshBleUuids.uartService)) {
+    _scanSub = _ble.scanForDevices(
+        withServices: const [], scanMode: ScanMode.lowLatency).listen((device) {
+      if (_isMeshCoreCandidate(device)) {
         final index = _lastScan.indexWhere((seen) => seen.id == device.id);
         if (index >= 0) {
           _lastScan[index] = device;
@@ -50,8 +56,14 @@ class BleMeshTransport implements MeshTransport {
       if (!done.isCompleted) done.complete();
     });
     await done.future.whenComplete(() => _scanSub?.cancel());
-    _states.add(const MeshConnectionSnapshot(status: MeshConnectionStatus.disconnected, transportType: MeshTransportType.ble));
-    return _lastScan
+    _states.add(const MeshConnectionSnapshot(
+        status: MeshConnectionStatus.disconnected,
+        transportType: MeshTransportType.ble));
+    final devices = _lastScan.where(_isPreferredCandidate).toList();
+    final fallbackDevices = devices.isEmpty
+        ? _lastScan.where((device) => device.name.trim().isNotEmpty).toList()
+        : devices;
+    return fallbackDevices
         .map((device) => MeshDevice(
               id: device.id,
               name: device.name.isEmpty ? 'MeshCore BLE' : device.name,
@@ -62,11 +74,68 @@ class BleMeshTransport implements MeshTransport {
         .toList();
   }
 
+  Future<void> _ensureReadyForScan() async {
+    if (Platform.isAndroid) {
+      final permissions = await [
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect,
+      ].request();
+      final denied = permissions.entries
+          .where((entry) => !entry.value.isGranted && !entry.value.isLimited)
+          .map((entry) => entry.key.toString().split('.').last)
+          .join(', ');
+      if (denied.isNotEmpty) {
+        throw TransportException('Android BLE permission denied: $denied');
+      }
+    }
+
+    var status = await _currentBleStatus();
+    if (Platform.isAndroid &&
+        (status == BleStatus.unauthorized ||
+            status == BleStatus.locationServicesDisabled)) {
+      final location = await Permission.locationWhenInUse.request();
+      if (!location.isGranted && !location.isLimited) {
+        throw const TransportException(
+            'Android BLE location permission denied. Required on Android 11 and older.');
+      }
+      status = await _currentBleStatus();
+    }
+    if (status != BleStatus.ready) {
+      throw TransportException('BLE is not ready: ${status.name}');
+    }
+  }
+
+  Future<BleStatus> _currentBleStatus() {
+    if (_ble.status != BleStatus.unknown) {
+      return Future.value(_ble.status);
+    }
+    return _ble.statusStream
+        .firstWhere((status) => status != BleStatus.unknown)
+        .timeout(const Duration(seconds: 3), onTimeout: () => _ble.status);
+  }
+
+  bool _isMeshCoreCandidate(DiscoveredDevice device) {
+    return _isPreferredCandidate(device) || device.name.trim().isNotEmpty;
+  }
+
+  bool _isPreferredCandidate(DiscoveredDevice device) {
+    final serviceIds =
+        device.serviceUuids.map((u) => u.toString().toUpperCase());
+    return device.name.toLowerCase().contains('meshcore') ||
+        serviceIds.contains(MeshBleUuids.uartService);
+  }
+
   @override
   Future<void> connect(MeshDevice device) async {
-    _states.add(MeshConnectionSnapshot(status: MeshConnectionStatus.connecting, transportType: MeshTransportType.ble, device: device));
+    _states.add(MeshConnectionSnapshot(
+        status: MeshConnectionStatus.connecting,
+        transportType: MeshTransportType.ble,
+        device: device));
     final connected = Completer<void>();
-    _connectSub = _ble.connectToDevice(id: device.id, connectionTimeout: const Duration(seconds: 12)).listen((update) async {
+    _connectSub = _ble
+        .connectToDevice(
+            id: device.id, connectionTimeout: const Duration(seconds: 12))
+        .listen((update) async {
       if (update.connectionState == DeviceConnectionState.connected) {
         _rxChar = QualifiedCharacteristic(
           serviceId: Uuid.parse(MeshBleUuids.uartService),
@@ -78,14 +147,26 @@ class BleMeshTransport implements MeshTransport {
           characteristicId: Uuid.parse(MeshBleUuids.uartTx),
           deviceId: device.id,
         );
-        _notifySub = _ble.subscribeToCharacteristic(txChar).listen((data) => _frames.add(Uint8List.fromList(data)));
-        _states.add(MeshConnectionSnapshot(status: MeshConnectionStatus.connected, transportType: MeshTransportType.ble, device: device));
+        _notifySub = _ble
+            .subscribeToCharacteristic(txChar)
+            .listen((data) => _frames.add(Uint8List.fromList(data)));
+        _states.add(MeshConnectionSnapshot(
+            status: MeshConnectionStatus.connected,
+            transportType: MeshTransportType.ble,
+            device: device));
         if (!connected.isCompleted) connected.complete();
       } else if (update.connectionState == DeviceConnectionState.disconnected) {
-        _states.add(MeshConnectionSnapshot(status: MeshConnectionStatus.reconnecting, transportType: MeshTransportType.ble, device: device));
+        _states.add(MeshConnectionSnapshot(
+            status: MeshConnectionStatus.reconnecting,
+            transportType: MeshTransportType.ble,
+            device: device));
       }
     }, onError: (Object error) {
-      _states.add(MeshConnectionSnapshot(status: MeshConnectionStatus.error, transportType: MeshTransportType.ble, device: device, message: '$error'));
+      _states.add(MeshConnectionSnapshot(
+          status: MeshConnectionStatus.error,
+          transportType: MeshTransportType.ble,
+          device: device,
+          message: '$error'));
       if (!connected.isCompleted) connected.completeError(error);
     });
     await connected.future;
@@ -94,7 +175,10 @@ class BleMeshTransport implements MeshTransport {
   @override
   Future<void> send(Uint8List payload) async {
     final characteristic = _rxChar;
-    if (characteristic == null) throw const TransportException('BLE UART RX characteristic is not connected');
+    if (characteristic == null) {
+      throw const TransportException(
+          'BLE UART RX characteristic is not connected');
+    }
     await _ble.writeCharacteristicWithResponse(characteristic, value: payload);
   }
 
@@ -105,7 +189,9 @@ class BleMeshTransport implements MeshTransport {
     _notifySub = null;
     _connectSub = null;
     _rxChar = null;
-    _states.add(const MeshConnectionSnapshot(status: MeshConnectionStatus.disconnected, transportType: MeshTransportType.ble));
+    _states.add(const MeshConnectionSnapshot(
+        status: MeshConnectionStatus.disconnected,
+        transportType: MeshTransportType.ble));
   }
 
   @override

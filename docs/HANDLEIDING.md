@@ -51,7 +51,7 @@ Heeft je telefoon geen OTG of werkt de kabel alleen voor laden, gebruik dan **BL
 
 ### Vereisten
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) versie 3.4 of hoger
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) versie 3.24 of hoger
 - Android: Android SDK + een aangesloten telefoon of emulator
 - Linux: `libserialport` (`sudo apt install libserialport-dev`)
 - Windows: Visual Studio met **Desktop development with C++**

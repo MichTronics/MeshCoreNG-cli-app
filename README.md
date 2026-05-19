@@ -51,7 +51,7 @@ If OTG is not available, use **BLE** or **TCP** instead.
 
 ### Prerequisites
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) ≥ 3.4
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) ≥ 3.24
 - For Android: Android SDK + a connected device or emulator
 - For Linux: `libserialport` (`sudo apt install libserialport-dev`)
 - For Windows: Visual Studio with **Desktop development with C++**
