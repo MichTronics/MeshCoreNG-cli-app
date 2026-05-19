@@ -26,6 +26,8 @@ class RawSerialConsole {
 
   Stream<String> get lines => _lines.stream;
   Stream<MeshConnectionSnapshot> get states => _states.stream;
+  String get backendLabel =>
+      Platform.isAndroid ? 'Android USB/OTG' : 'desktop serial';
 
   Future<List<MeshDevice>> scan() async {
     if (Platform.isAndroid) {

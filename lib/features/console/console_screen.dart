@@ -435,7 +435,10 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
   Future<void> _scanRawSerial() async {
     setState(() => _busy = true);
     try {
-      final devices = await ref.read(rawSerialConsoleProvider).scan();
+      final console = ref.read(rawSerialConsoleProvider);
+      _append(
+          'INFO', 'Scanning direct serial ports via ${console.backendLabel}');
+      final devices = await console.scan();
       if (!mounted) return;
       setState(() => _rawDevices = devices);
     } catch (error) {
