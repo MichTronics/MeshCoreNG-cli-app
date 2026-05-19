@@ -25,6 +25,19 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!--
+                Allows Android to offer MeshCLI NG when a supported USB serial
+                node is plugged in. Without this filter the app can still scan
+                from inside the UI, but it will not appear in Android's USB app
+                chooser for direct serial/OTG access.
+            -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
         </activity>
         <meta-data android:name="flutterEmbedding" android:value="2" />
     </application>

@@ -41,6 +41,8 @@ Use:
 - a MeshCore node/repeater that exposes a USB serial port
 - Android's USB permission popup when the app scans/connects
 
+When a supported USB serial node is plugged in, Android should offer **MeshCLI NG** as an app for that USB device. If it does not, install the newest APK, unplug/replug the node, and check that the cable is a data/OTG cable.
+
 If OTG is not available, use **BLE** or **TCP** instead.
 
 ---
@@ -241,7 +243,7 @@ See [docs/protocol_audit.md](docs/protocol_audit.md) for the serial/BLE framing 
 ## Troubleshooting
 
 **Android does not find my USB node**
-Accept the Android USB permission dialog. The phone and cable must also support USB OTG / USB host; charge-only cables usually do not work. If the node still does not appear, reconnect the cable or use BLE/TCP.
+Accept the Android USB permission dialog. The phone and cable must also support USB OTG / USB host; charge-only cables usually do not work. If Android does not offer MeshCLI NG for the USB device, install the newest APK and reconnect the node. If the node still does not appear, use BLE/TCP.
 
 ---
 

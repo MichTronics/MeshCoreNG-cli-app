@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Generic CDC ACM serial devices, used by many native USB MCU boards. -->
+    <usb-device class="2" subclass="2" />
+
+    <!-- Espressif native USB / USB-JTAG devices, common on ESP32-S2/S3/C3 boards. -->
+    <usb-device vendor-id="12346" />
+
+    <!-- Raspberry Pi RP2040 / Pico-style USB serial devices. -->
+    <usb-device vendor-id="11914" />
+
+    <!-- Arduino boards. -->
+    <usb-device vendor-id="9025" />
+
+    <!-- FTDI FT232R UART and FT231X adapters. -->
+    <usb-device vendor-id="1027" product-id="24577" />
+    <usb-device vendor-id="1027" product-id="24597" />
+
+    <!-- Silicon Labs CP210x UART bridge. -->
+    <usb-device vendor-id="4292" product-id="60000" />
+
+    <!-- WCH CH340 / CH341 UART bridge. -->
+    <usb-device vendor-id="6790" product-id="29987" />
+
+    <!-- Prolific PL2303 UART bridge. -->
+    <usb-device vendor-id="1659" product-id="8963" />
+</resources>

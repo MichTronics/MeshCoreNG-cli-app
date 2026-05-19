@@ -41,6 +41,8 @@ Gebruik:
 - een MeshCore-node/repeater die als USB-seriële poort verschijnt
 - de Android USB-toestemming die verschijnt bij scannen of verbinden
 
+Wanneer je een ondersteunde USB-seriële node aansluit, hoort Android **MeshCLI NG** aan te bieden als app voor dat USB-apparaat. Gebeurt dat niet, installeer dan de nieuwste APK, trek de node los en sluit hem opnieuw aan, en controleer of de kabel echt data/OTG ondersteunt.
+
 Heeft je telefoon geen OTG of werkt de kabel alleen voor laden, gebruik dan **BLE** of **TCP**.
 
 ---
@@ -244,7 +246,7 @@ Zie [protocol_audit.md](protocol_audit.md) voor de seriële/BLE-framingdetails.
 ## Veelgestelde vragen
 
 **De app vindt mijn USB-apparaat niet (Android)**  
-Android vraagt toestemming voor USB-host-toegang. Accepteer het dialoogvenster dat verschijnt. De telefoon en kabel moeten ook USB OTG / USB-host ondersteunen; een laadkabel werkt meestal niet. Als het apparaat nog steeds niet zichtbaar is, probeer dan de kabel opnieuw aan te sluiten of gebruik BLE/TCP.
+Android vraagt toestemming voor USB-host-toegang. Accepteer het dialoogvenster dat verschijnt. De telefoon en kabel moeten ook USB OTG / USB-host ondersteunen; een laadkabel werkt meestal niet. Als Android MeshCLI NG niet aanbiedt voor het USB-apparaat, installeer dan de nieuwste APK en sluit de node opnieuw aan. Verschijnt de node nog steeds niet, gebruik dan BLE/TCP.
 
 **De app vindt mijn seriële poort niet (Linux)**  
 Voeg je gebruiker toe aan de groep `dialout`:
