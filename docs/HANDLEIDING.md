@@ -31,6 +31,18 @@ De app heeft geen chat-interface en geen contactenlijst — het is een compacte 
 
 BLE op desktop is niet opgenomen; gebruik serieel of TCP op Linux/Windows.
 
+### Android USB / OTG
+
+Voor USB-serieel op Android moet de telefoon **USB OTG / USB-host** ondersteunen.
+Dat is nodig omdat de MeshCore-node rechtstreeks aan de telefoon hangt: de telefoon moet dan de USB-host zijn en de app toestemming geven om de seriële poort te openen.
+
+Gebruik:
+- een USB-C OTG-adapter of USB-C datakabel
+- een MeshCore-node/repeater die als USB-seriële poort verschijnt
+- de Android USB-toestemming die verschijnt bij scannen of verbinden
+
+Heeft je telefoon geen OTG of werkt de kabel alleen voor laden, gebruik dan **BLE** of **TCP**.
+
 ---
 
 ## Installatie en starten
@@ -232,7 +244,7 @@ Zie [protocol_audit.md](protocol_audit.md) voor de seriële/BLE-framingdetails.
 ## Veelgestelde vragen
 
 **De app vindt mijn USB-apparaat niet (Android)**  
-Android vraagt toestemming voor USB-host-toegang. Accepteer het dialoogvenster dat verschijnt. Als het apparaat nog steeds niet zichtbaar is, probeer dan de kabel opnieuw aan te sluiten.
+Android vraagt toestemming voor USB-host-toegang. Accepteer het dialoogvenster dat verschijnt. De telefoon en kabel moeten ook USB OTG / USB-host ondersteunen; een laadkabel werkt meestal niet. Als het apparaat nog steeds niet zichtbaar is, probeer dan de kabel opnieuw aan te sluiten of gebruik BLE/TCP.
 
 **De app vindt mijn seriële poort niet (Linux)**  
 Voeg je gebruiker toe aan de groep `dialout`:

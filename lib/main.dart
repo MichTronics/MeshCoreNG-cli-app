@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'features/console/console_screen.dart';
 import 'shared/providers.dart';
+import 'shared/responsive.dart';
 import 'shared/theme.dart';
 import 'widgets/app_shell.dart' show ConnectionPill;
 
@@ -30,17 +31,29 @@ class _ConsoleHome extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(connectionStateProvider).valueOrNull;
+    final isMobile = MeshResponsive.isMobile(context);
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: const Text('MeshCLI NG Console'),
+        title: Text(
+          isMobile ? 'MeshCLI NG' : 'MeshCLI NG Console',
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 6 : 12),
             child: Center(child: ConnectionPill(snapshot: state)),
           ),
         ],
       ),
-      body: const ConsoleScreen(),
+      // SafeArea protects Android display cutouts and gesture/navigation areas;
+      // maintainBottomViewPadding keeps the bottom command bar above nav controls
+      // while Flutter also resizes the body for the soft keyboard.
+      body: const SafeArea(
+        bottom: true,
+        maintainBottomViewPadding: true,
+        child: ConsoleScreen(),
+      ),
     );
   }
 }

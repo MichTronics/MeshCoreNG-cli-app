@@ -11,6 +11,7 @@ import '../../core/transport/serial/raw_serial_console.dart';
 import '../../core/packets/mesh_enums.dart';
 import '../../core/packets/mesh_event.dart';
 import '../../shared/providers.dart';
+import '../../shared/responsive.dart';
 import '../../widgets/section_panel.dart';
 import 'config_dialog.dart';
 
@@ -57,7 +58,9 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
       final name = _serialDeviceName;
       if (_mode == ConsoleMode.directSerialRepeater &&
           name != null &&
-          line.trimRight().startsWith('$name>')) { return; }
+          line.trimRight().startsWith('$name>')) {
+        return;
+      }
       _append('RX', line);
     });
   }
@@ -79,11 +82,12 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     if (text.isEmpty && _mode != ConsoleMode.directSerialRepeater) return;
     if (!mounted) return;
     setState(() => _busy = true);
-    final txLabel = _mode == ConsoleMode.directSerialRepeater && _serialDeviceName != null
-        ? '$_serialDeviceName> $text'
-        : text.isEmpty
-            ? '<ENTER>'
-            : text;
+    final txLabel =
+        _mode == ConsoleMode.directSerialRepeater && _serialDeviceName != null
+            ? '$_serialDeviceName> $text'
+            : text.isEmpty
+                ? '<ENTER>'
+                : text;
     _append('TX', txLabel);
     _commandController.clear();
     try {
@@ -271,108 +275,87 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     return SectionPanel(
       title: 'Console',
       actions: [
-        SegmentedButton<ConsoleMode>(
-          segments: const [
-            ButtonSegment(
-                value: ConsoleMode.companion,
-                icon: Icon(Icons.memory),
-                label: Text('Companion')),
-            ButtonSegment(
-                value: ConsoleMode.repeater,
-                icon: Icon(Icons.settings_input_antenna),
-                label: Text('Remote')),
-            ButtonSegment(
-                value: ConsoleMode.directSerialRepeater,
-                icon: Icon(Icons.cable),
-                label: Text('-r Serial')),
-          ],
-          selected: {_mode},
-          onSelectionChanged:
-              _busy ? null : (value) => setState(() => _mode = value.first),
+        _ModeControl(
+          mode: _mode,
+          busy: _busy,
+          onChanged: (mode) => setState(() => _mode = mode),
         ),
       ],
-      child: Column(
-        children: [
-          if (_mode != ConsoleMode.directSerialRepeater)
-            _CompanionConnectionToolbar(
-              transport: selectedTransport,
-              devices: _devices,
-              snapshot: connection,
-              busy: _busy,
-              onTransportChanged: (transport) {
-                ref.read(selectedTransportProvider.notifier).state = transport;
-                setState(() => _devices = const []);
-              },
-              onScan: _scanCompanion,
-              onConnect: _connectCompanion,
-              onDisconnect: _disconnectCompanion,
-            ),
-          if (_mode == ConsoleMode.repeater)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: TextField(
-                controller: _targetController,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.key),
-                  labelText: 'Remote repeater public key/prefix hex',
-                ),
-              ),
-            ),
-          if (_mode == ConsoleMode.directSerialRepeater)
-            _RawSerialToolbar(
-              devices: _rawDevices,
-              selected: _rawDevice,
-              busy: _busy,
-              onScan: _scanRawSerial,
-              onConnect: _connectRawSerial,
-              onDisconnect: _disconnectRawSerial,
-              onConfig: _serialDeviceName != null ? _openSerialConfig : null,
-            ),
-          Expanded(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xff050708),
-                border: Border.all(color: const Color(0xff1d2a30)),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: ListView.builder(
-                controller: _scroll,
-                itemCount: _lines.length,
-                itemBuilder: (context, index) =>
-                    _ConsoleLineView(line: _lines[index]),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _commandController,
-                  enabled: !_busy,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.terminal),
-                    hintText: switch (_mode) {
-                      ConsoleMode.companion =>
-                        'info, ver, nodes, get freq, set tx 20, stats, reboot',
-                      ConsoleMode.repeater =>
-                        'get freq, set repeat on, get role, ...',
-                      ConsoleMode.directSerialRepeater =>
-                        'direct serial CLI: get freq, set repeat on, clock sync, ...',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final gap = MeshResponsive.gap(context);
+          final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+          return AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(bottom: keyboardOpen ? 4 : 0),
+            child: Column(
+              children: [
+                if (_mode != ConsoleMode.directSerialRepeater)
+                  _CompanionConnectionToolbar(
+                    transport: selectedTransport,
+                    devices: _devices,
+                    snapshot: connection,
+                    busy: _busy,
+                    onTransportChanged: (transport) {
+                      ref.read(selectedTransportProvider.notifier).state =
+                          transport;
+                      setState(() => _devices = const []);
                     },
+                    onScan: _scanCompanion,
+                    onConnect: _connectCompanion,
+                    onDisconnect: _disconnectCompanion,
                   ),
-                  onSubmitted: (_) => _send(),
+                if (_mode == ConsoleMode.repeater)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: gap),
+                    child: TextField(
+                      controller: _targetController,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.key),
+                        labelText: 'Remote repeater public key/prefix hex',
+                      ),
+                    ),
+                  ),
+                if (_mode == ConsoleMode.directSerialRepeater)
+                  _RawSerialToolbar(
+                    devices: _rawDevices,
+                    selected: _rawDevice,
+                    busy: _busy,
+                    onScan: _scanRawSerial,
+                    onConnect: _connectRawSerial,
+                    onDisconnect: _disconnectRawSerial,
+                    onConfig:
+                        _serialDeviceName != null ? _openSerialConfig : null,
+                  ),
+                Expanded(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xff050708),
+                      border: Border.all(color: const Color(0xff1d2a30)),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: ListView.builder(
+                      controller: _scroll,
+                      padding: EdgeInsets.symmetric(vertical: gap / 2),
+                      itemCount: _lines.length,
+                      itemBuilder: (context, index) =>
+                          _ConsoleLineView(line: _lines[index]),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: _busy ? null : _send,
-                icon: const Icon(Icons.send),
-                label: const Text('Send'),
-              ),
-            ],
-          ),
-        ],
+                SizedBox(height: gap),
+                _CommandBar(
+                  controller: _commandController,
+                  mode: _mode,
+                  busy: _busy,
+                  maxWidth: constraints.maxWidth,
+                  onSend: _send,
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -415,11 +398,10 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
       if (!mounted) return;
 
       final name = info.payload['name']?.toString() ?? device.name;
-      final freq = (info.payload['radio_freq'] as num?)
-          ?.toStringAsFixed(4);
-      final ver = (devQuery.payload['ver']
-              ?? devQuery.payload['fw_build']
-              ?? devQuery.payload['fw_ver'])
+      final freq = (info.payload['radio_freq'] as num?)?.toStringAsFixed(4);
+      final ver = (devQuery.payload['ver'] ??
+              devQuery.payload['fw_build'] ??
+              devQuery.payload['fw_ver'])
           ?.toString();
 
       _append(
@@ -463,7 +445,8 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     }
   }
 
-  Future<String?> _queryRawSerial(RawSerialConsole console, String command) async {
+  Future<String?> _queryRawSerial(
+      RawSerialConsole console, String command) async {
     final completer = Completer<String?>();
     final sub = console.lines.listen((line) {
       final match = RegExp(r'->\s*>\s*(.+)').firstMatch(line);
@@ -486,7 +469,8 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     setState(() => _busy = true);
     try {
       final console = ref.read(rawSerialConsoleProvider);
-      _append('INFO', 'INFO:meshcore:Connecting to repeater at ${device.id} (115200 baud)...');
+      _append('INFO',
+          'INFO:meshcore:Connecting to repeater at ${device.id} (115200 baud)...');
       await console.connect(device);
       if (!mounted) return;
       setState(() {
@@ -504,8 +488,10 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
       });
 
       final deviceName = _serialDeviceName!;
-      _append('INFO', 'Connected! Device: $deviceName${ver != null ? ' version $ver' : ''}');
-      _append('INFO', 'Type help for commands, quit to exit, Tab for completion');
+      _append('INFO',
+          'Connected! Device: $deviceName${ver != null ? ' version $ver' : ''}');
+      _append(
+          'INFO', 'Type help for commands, quit to exit, Tab for completion');
       _append('INFO', '--------------------------------------------------');
     } catch (error) {
       if (mounted) setState(() => _suppressRawLines = false);
@@ -697,6 +683,142 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
   }
 }
 
+class _ModeControl extends StatelessWidget {
+  const _ModeControl({
+    required this.mode,
+    required this.busy,
+    required this.onChanged,
+  });
+
+  final ConsoleMode mode;
+  final bool busy;
+  final ValueChanged<ConsoleMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final mobile = MeshResponsive.isMobile(context);
+    if (mobile) {
+      return SizedBox(
+        width: double.infinity,
+        child: DropdownButtonFormField<ConsoleMode>(
+          initialValue: mode,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.tune),
+            labelText: 'Console mode',
+          ),
+          items: const [
+            DropdownMenuItem(
+              value: ConsoleMode.companion,
+              child: Text('Companion'),
+            ),
+            DropdownMenuItem(
+              value: ConsoleMode.repeater,
+              child: Text('Remote'),
+            ),
+            DropdownMenuItem(
+              value: ConsoleMode.directSerialRepeater,
+              child: Text('-r Serial'),
+            ),
+          ],
+          onChanged: busy
+              ? null
+              : (value) {
+                  if (value != null) onChanged(value);
+                },
+        ),
+      );
+    }
+
+    return SegmentedButton<ConsoleMode>(
+      showSelectedIcon: false,
+      segments: const [
+        ButtonSegment(
+            value: ConsoleMode.companion,
+            icon: Icon(Icons.memory),
+            label: Text('Companion')),
+        ButtonSegment(
+            value: ConsoleMode.repeater,
+            icon: Icon(Icons.settings_input_antenna),
+            label: Text('Remote')),
+        ButtonSegment(
+            value: ConsoleMode.directSerialRepeater,
+            icon: Icon(Icons.cable),
+            label: Text('-r Serial')),
+      ],
+      selected: {mode},
+      onSelectionChanged: busy ? null : (value) => onChanged(value.first),
+    );
+  }
+}
+
+class _CommandBar extends StatelessWidget {
+  const _CommandBar({
+    required this.controller,
+    required this.mode,
+    required this.busy,
+    required this.maxWidth,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final ConsoleMode mode;
+  final bool busy;
+  final double maxWidth;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    final mobile = maxWidth < MeshResponsive.mobileMax;
+    final hint = switch (mode) {
+      ConsoleMode.companion => mobile
+          ? 'info, nodes, get freq, set tx 20'
+          : 'info, ver, nodes, get freq, set tx 20, stats, reboot',
+      ConsoleMode.repeater => mobile
+          ? 'get freq, set repeat on'
+          : 'get freq, set repeat on, get role, ...',
+      ConsoleMode.directSerialRepeater => mobile
+          ? 'serial CLI command'
+          : 'direct serial CLI: get freq, set repeat on, clock sync, ...',
+    };
+
+    // The input row is intentionally outside the console scroller so Android
+    // keyboard resize affects only available console height, not command access.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            enabled: !busy,
+            minLines: 1,
+            maxLines: mobile ? 3 : 2,
+            textInputAction: TextInputAction.send,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.terminal),
+              hintText: hint,
+            ),
+            onSubmitted: (_) => onSend(),
+          ),
+        ),
+        SizedBox(width: MeshResponsive.gap(context)),
+        if (mobile)
+          IconButton.filled(
+            onPressed: busy ? null : onSend,
+            icon: const Icon(Icons.send),
+            tooltip: 'Send',
+          )
+        else
+          FilledButton.icon(
+            onPressed: busy ? null : onSend,
+            icon: const Icon(Icons.send),
+            label: const Text('Send'),
+          ),
+      ],
+    );
+  }
+}
+
 class _CompanionConnectionToolbar extends StatelessWidget {
   const _CompanionConnectionToolbar({
     required this.transport,
@@ -720,6 +842,7 @@ class _CompanionConnectionToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gap = MeshResponsive.gap(context);
     final connected = switch (snapshot?.status) {
       MeshConnectionStatus.connected ||
       MeshConnectionStatus.authenticated =>
@@ -728,10 +851,12 @@ class _CompanionConnectionToolbar extends StatelessWidget {
     };
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          SegmentedButton<MeshTransportType>(
+      padding: EdgeInsets.only(bottom: gap),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final mobile = constraints.maxWidth < MeshResponsive.mobileMax;
+          final transportSelector = SegmentedButton<MeshTransportType>(
+            showSelectedIcon: false,
             segments: const [
               ButtonSegment(
                   value: MeshTransportType.usbSerial,
@@ -749,43 +874,64 @@ class _CompanionConnectionToolbar extends StatelessWidget {
             selected: {transport},
             onSelectionChanged:
                 busy ? null : (value) => onTransportChanged(value.first),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: DropdownButtonFormField<MeshDevice>(
-              initialValue: null,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.link),
-                labelText: 'Companion device',
-              ),
-              items: [
-                for (final device in devices)
-                  DropdownMenuItem(
-                    value: device,
-                    child:
-                        Text('${device.name}  ${device.subtitle ?? device.id}'),
-                  ),
-              ],
-              onChanged: busy || devices.isEmpty
-                  ? null
-                  : (device) {
-                      if (device != null) onConnect(device);
-                    },
+          );
+          final devicePicker = DropdownButtonFormField<MeshDevice>(
+            initialValue: null,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.link),
+              labelText: 'Companion device',
             ),
-          ),
-          const SizedBox(width: 8),
-          FilledButton.icon(
-            onPressed: busy ? null : onScan,
-            icon: const Icon(Icons.search),
-            label: const Text('Scan'),
-          ),
-          const SizedBox(width: 8),
-          OutlinedButton.icon(
-            onPressed: busy || !connected ? null : onDisconnect,
-            icon: const Icon(Icons.link_off),
-            label: const Text('Disconnect'),
-          ),
-        ],
+            items: [
+              for (final device in devices)
+                DropdownMenuItem(
+                  value: device,
+                  child:
+                      Text('${device.name}  ${device.subtitle ?? device.id}'),
+                ),
+            ],
+            onChanged: busy || devices.isEmpty
+                ? null
+                : (device) {
+                    if (device != null) onConnect(device);
+                  },
+          );
+          final buttons = <Widget>[
+            FilledButton.icon(
+              onPressed: busy ? null : onScan,
+              icon: const Icon(Icons.search),
+              label: const Text('Scan'),
+            ),
+            OutlinedButton.icon(
+              onPressed: busy || !connected ? null : onDisconnect,
+              icon: const Icon(Icons.link_off),
+              label: const Text('Disconnect'),
+            ),
+          ];
+
+          if (mobile) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                transportSelector,
+                SizedBox(height: gap),
+                devicePicker,
+                SizedBox(height: gap),
+                Wrap(spacing: gap, runSpacing: gap, children: buttons),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              transportSelector,
+              SizedBox(width: gap),
+              Expanded(child: devicePicker),
+              SizedBox(width: gap),
+              ...buttons.expand((button) => [button, SizedBox(width: gap)]),
+            ]..removeLast(),
+          );
+        },
       ),
     );
   }
@@ -812,47 +958,63 @@ class _RawSerialToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gap = MeshResponsive.gap(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: DropdownButtonFormField<MeshDevice>(
-              initialValue: selected,
-              decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.cable),
-                  labelText: 'Direct serial port'),
-              items: [
-                for (final device in devices)
-                  DropdownMenuItem(
-                      value: device,
-                      child: Text('${device.name}  ${device.id}')),
-              ],
-              onChanged: busy || devices.isEmpty
-                  ? null
-                  : (device) {
-                      if (device != null) onConnect(device);
-                    },
-            ),
-          ),
-          const SizedBox(width: 8),
-          FilledButton.icon(
-              onPressed: busy ? null : onScan,
-              icon: const Icon(Icons.search),
-              label: const Text('Scan')),
-          const SizedBox(width: 8),
-          if (onConfig != null) ...[
+      padding: EdgeInsets.only(bottom: gap),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final mobile = constraints.maxWidth < MeshResponsive.mobileMax;
+          final portPicker = DropdownButtonFormField<MeshDevice>(
+            initialValue: selected,
+            isExpanded: true,
+            decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.cable), labelText: 'Direct serial port'),
+            items: [
+              for (final device in devices)
+                DropdownMenuItem(
+                    value: device, child: Text('${device.name}  ${device.id}')),
+            ],
+            onChanged: busy || devices.isEmpty
+                ? null
+                : (device) {
+                    if (device != null) onConnect(device);
+                  },
+          );
+          final buttons = <Widget>[
             FilledButton.icon(
-                onPressed: busy ? null : onConfig,
-                icon: const Icon(Icons.tune),
-                label: const Text('Config')),
-            const SizedBox(width: 8),
-          ],
-          OutlinedButton.icon(
-              onPressed: busy || selected == null ? null : onDisconnect,
-              icon: const Icon(Icons.link_off),
-              label: const Text('Disconnect')),
-        ],
+                onPressed: busy ? null : onScan,
+                icon: const Icon(Icons.search),
+                label: const Text('Scan')),
+            if (onConfig != null)
+              FilledButton.icon(
+                  onPressed: busy ? null : onConfig,
+                  icon: const Icon(Icons.tune),
+                  label: const Text('Config')),
+            OutlinedButton.icon(
+                onPressed: busy || selected == null ? null : onDisconnect,
+                icon: const Icon(Icons.link_off),
+                label: const Text('Disconnect')),
+          ];
+
+          if (mobile) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                portPicker,
+                SizedBox(height: gap),
+                Wrap(spacing: gap, runSpacing: gap, children: buttons),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: portPicker),
+              SizedBox(width: gap),
+              ...buttons.expand((button) => [button, SizedBox(width: gap)]),
+            ]..removeLast(),
+          );
+        },
       ),
     );
   }
@@ -873,6 +1035,9 @@ class _ConsoleLineView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mobile = MeshResponsive.isMobile(context);
+    final timeWidth = mobile ? 58.0 : 82.0;
+    final directionWidth = mobile ? 34.0 : 42.0;
     final color = switch (line.direction) {
       'TX' => Colors.orangeAccent,
       'ERR' => Colors.redAccent,
@@ -880,19 +1045,21 @@ class _ConsoleLineView extends StatelessWidget {
       _ => Colors.greenAccent,
     };
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: mobile ? 6 : 10, vertical: 3),
       child: DefaultTextStyle(
-        style: const TextStyle(
-            fontFamily: 'monospace', fontSize: 13, height: 1.25),
+        style: TextStyle(
+            fontFamily: 'monospace',
+            fontSize: mobile ? 11.5 : 13,
+            height: 1.25),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-                width: 82,
+                width: timeWidth,
                 child: Text(DateFormat.Hms().format(line.time),
                     style: const TextStyle(color: Colors.grey))),
             SizedBox(
-                width: 42,
+                width: directionWidth,
                 child: Text(line.direction, style: TextStyle(color: color))),
             Expanded(
                 child: SelectableText(line.text,

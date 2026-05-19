@@ -31,6 +31,18 @@ The app has no messaging UI and no node browser — it is a focused CLI console.
 
 Desktop BLE is not included; use serial or TCP on Linux/Windows.
 
+### Android USB / OTG
+
+For USB serial on Android the phone must support **USB OTG / USB host**.
+This is needed because the MeshCore node is plugged directly into the phone, so the phone has to act as the USB host and give the app permission to open the serial port.
+
+Use:
+- a USB-C OTG adapter or USB-C data cable
+- a MeshCore node/repeater that exposes a USB serial port
+- Android's USB permission popup when the app scans/connects
+
+If OTG is not available, use **BLE** or **TCP** instead.
+
 ---
 
 ## Build & run
@@ -223,6 +235,13 @@ lib/
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a deeper explanation.  
 See [docs/protocol_audit.md](docs/protocol_audit.md) for the serial/BLE framing details.
+
+---
+
+## Troubleshooting
+
+**Android does not find my USB node**
+Accept the Android USB permission dialog. The phone and cable must also support USB OTG / USB host; charge-only cables usually do not work. If the node still does not appear, reconnect the cable or use BLE/TCP.
 
 ---
 

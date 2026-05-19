@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/models/connection_state.dart';
+import '../shared/responsive.dart';
 
 class ConnectionPill extends StatelessWidget {
   const ConnectionPill({required this.snapshot, super.key});
@@ -9,6 +10,7 @@ class ConnectionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MeshResponsive.isMobile(context);
     final status = snapshot?.status ?? MeshConnectionStatus.disconnected;
     final color = switch (status) {
       MeshConnectionStatus.authenticated => Colors.greenAccent,
@@ -26,9 +28,21 @@ class ConnectionPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(99),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        child: Text(status.name.toUpperCase(),
-            style: TextStyle(color: color, fontSize: 12, letterSpacing: 0)),
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 8 : 10,
+          vertical: isMobile ? 4 : 5,
+        ),
+        child: Text(
+          status.name.toUpperCase(),
+          maxLines: 1,
+          overflow: TextOverflow.fade,
+          softWrap: false,
+          style: TextStyle(
+            color: color,
+            fontSize: isMobile ? 10 : 12,
+            letterSpacing: 0,
+          ),
+        ),
       ),
     );
   }
