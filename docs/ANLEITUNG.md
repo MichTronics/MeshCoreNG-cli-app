@@ -193,6 +193,7 @@ Sobald du verbunden bist, erscheint die Schaltfläche **Config** in der Werkzeug
 - bei **Apply changes** nur die geänderten `set`-Befehle an das Gerät sendet und ✓ oder ✗ pro Parameter zeigt
 - **WiFi- und Brücken-Einstellungen** erkennt, die einen Neustart benötigen: Nach dem Anwenden erscheint ein Warnbanner mit **Reboot now**
 - einen Schritt **Regionen** enthält für Home/Default-Scope, Flood-Allow/Deny-Listen, niederländische Standortsuche und ein Preset, das `de` plus alle 16 deutschen Bundesländer hinzufügt
+- eine lokale niederländische `regiondb` Lookup-Tabelle in der App verwendet, sodass `regiondb find <prefix>` auch funktioniert, wenn die Firmwaredatenbank deaktiviert ist
 
 **Parametergruppen im Konfigurationspanel:**
 

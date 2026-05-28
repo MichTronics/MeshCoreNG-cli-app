@@ -9,9 +9,10 @@ import 'package:intl/intl.dart';
 
 import '../../core/commands/mesh_commands.dart';
 import '../../core/models/connection_state.dart';
-import '../../core/transport/serial/raw_serial_console.dart';
 import '../../core/packets/mesh_enums.dart';
 import '../../core/packets/mesh_event.dart';
+import '../../core/regions/dutch_region_db.dart';
+import '../../core/transport/serial/raw_serial_console.dart';
 import '../../shared/providers.dart';
 import '../../shared/responsive.dart';
 import '../../widgets/section_panel.dart';
@@ -134,6 +135,11 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
           await ref.read(rawSerialConsoleProvider).sendLine('time $now');
           if (!mounted) return;
           _append('RX', 'clock sync sent: time $now');
+          return;
+        }
+        final localRegionDbResponse = DutchRegionDb.handleCommand(text);
+        if (localRegionDbResponse != null) {
+          _append('RX', localRegionDbResponse);
           return;
         }
         await ref.read(rawSerialConsoleProvider).sendLine(text);
@@ -494,6 +500,13 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     }
   }
 
+  Future<String?> _queryRegionAwareRawSerial(
+      RawSerialConsole console, String command) async {
+    final localRegionDbResponse = DutchRegionDb.handleCommand(command);
+    if (localRegionDbResponse != null) return localRegionDbResponse;
+    return _queryRawSerial(console, command);
+  }
+
   Future<void> _connectRawSerial(MeshDevice device) async {
     setState(() => _busy = true);
     try {
@@ -613,7 +626,7 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
         builder: (_) => SerialConfigWizardDialog(
           deviceName: deviceName,
           queryParam: (key) => _queryRawSerial(console, 'get $key'),
-          queryCommand: (cmd) => _queryRawSerial(console, cmd),
+          queryCommand: (cmd) => _queryRegionAwareRawSerial(console, cmd),
           setParam: (key, value) => _queryRawSerial(console, 'set $key $value'),
           sendCommand: (cmd) => console.sendLine(cmd),
         ),
@@ -696,6 +709,7 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('  region · region list [allowed|denied]');
     _i('  region get/put/remove/home/default/allowf/denyf <name>');
     _i('  region load · region save');
+    _i('  regiondb info/provinces/find/get/code  – local Dutch lookup');
     _i('');
     _i('Sensors:');
     _i('  sensor get <key> · sensor set <key> <val> · sensor list [start]');
@@ -1021,7 +1035,7 @@ String _describeCliCommand(String command) {
   if (lower.startsWith('region denyf'))
     return 'Block flood forwarding for a region or wildcard.';
   if (lower == 'regiondb' || lower == 'regiondb info')
-    return 'Show metadata for the built-in Dutch region lookup table.';
+    return 'Show metadata for the local Dutch region lookup table.';
   if (lower == 'regiondb provinces')
     return 'List Dutch province abbreviations and entry counts.';
   if (lower.startsWith('regiondb find'))
@@ -1029,7 +1043,7 @@ String _describeCliCommand(String command) {
   if (lower.startsWith('regiondb get'))
     return 'Read a Dutch region database entry by index, including all codes.';
   if (lower.startsWith('regiondb code'))
-    return 'Resolve an internal Dutch region code ID to its text code.';
+    return 'List Dutch region database entries that contain a region code.';
 
   if (lower.startsWith('get '))
     return _describeGetCommand(lower.substring(4).trim());

@@ -192,6 +192,7 @@ Zodra je verbonden bent verschijnt de knop **Config** in de werkbalk. Klik erop 
 - Bij **Apply changes** alleen de gewijzigde `set`-commando's naar het apparaat stuurt en ✓ of ✗ per parameter laat zien
 - **WiFi- en brug-instellingen** herkent die een herstart vereisen: na het toepassen verschijnt een waarschuwingsbanner met een knop **Reboot now**
 - Een stap **Regio's** bevat voor home/default scope, flood allow/deny-lijsten, Nederlandse locatie-lookup en een preset die `de` plus alle 16 Duitse deelstaten toevoegt
+- Een lokale Nederlandse `regiondb` lookup-tabel in de app gebruikt, zodat `regiondb find <prefix>` ook werkt als de firmwaredatabase uit staat
 
 **Parametergroepen in het configuratiepaneel:**
 

@@ -189,6 +189,7 @@ After connecting, a **Config** button appears in the toolbar. Click it — or ty
 - On **Apply changes**, sends only the modified `set` commands to the device and shows ✓ or ✗ per parameter
 - Recognises **WiFi / bridge settings** that require a reboot: after applying them a warning banner appears with a **Reboot now** button
 - Includes a **Regions** step for home/default scope, flood allow/deny lists, Dutch location lookup, and a preset that adds `de` plus all 16 German states
+- Uses a local Dutch `regiondb` lookup table in the app, so `regiondb find <prefix>` also works when the firmware database is disabled
 
 **Parameter sections in the config panel:**
 

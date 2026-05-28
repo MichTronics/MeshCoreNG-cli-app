@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/regions/dutch_region_db.dart';
 import '../../shared/responsive.dart';
 
 // ─── Parameter definitions ────────────────────────────────────
@@ -328,10 +329,8 @@ class _SerialConfigWizardDialogState extends State<SerialConfigWizardDialog> {
     if (!mounted) return;
     final tree = await widget.queryCommand('region tree');
     if (!mounted) return;
-    final dbInfo = await widget.queryCommand('regiondb info');
-    if (!mounted) return;
-    final provinces = await widget.queryCommand('regiondb provinces');
-    if (!mounted) return;
+    final dbInfo = DutchRegionDb.info();
+    final provinces = DutchRegionDb.provinces();
 
     final homeValue = _parseRegionValue(home, 'home is');
     final defaultValue = _parseRegionValue(def, 'default scope is');
@@ -392,7 +391,7 @@ class _SerialConfigWizardDialogState extends State<SerialConfigWizardDialog> {
       _regionLookupCode = null;
     });
     try {
-      final result = await widget.queryCommand('regiondb find $prefix');
+      final result = DutchRegionDb.find(prefix);
       if (!mounted) return;
       setState(() {
         _regionLookupResult = result ?? 'No response';
