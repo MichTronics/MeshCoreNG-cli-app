@@ -207,6 +207,26 @@ const _wizardSteps = <_WizardStep>[
   _WizardStep('Regions', []),
 ];
 
+const _kGermanRegionPreset = <String>[
+  'de',
+  'de-bw de',
+  'de-by de',
+  'de-be de',
+  'de-bb de',
+  'de-hb de',
+  'de-hh de',
+  'de-he de',
+  'de-mv de',
+  'de-ni de',
+  'de-nw de',
+  'de-rp de',
+  'de-sl de',
+  'de-sn de',
+  'de-st de',
+  'de-sh de',
+  'de-th de',
+];
+
 enum _WizardPhase { loading, editing, applying, done }
 
 class _SerialConfigWizardDialogState extends State<SerialConfigWizardDialog> {
@@ -397,6 +417,25 @@ class _SerialConfigWizardDialogState extends State<SerialConfigWizardDialog> {
       _regionDefaultController.text = code;
       final allowed = _regionNames(_regionAllowedController.text).toSet()
         ..add(code);
+      _regionAllowedController.text = allowed.join('\n');
+    });
+  }
+
+  void _addGermanRegionPreset() {
+    setState(() {
+      final existingPut = _regionPutController.text
+          .split('\n')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      final existingPutSet = existingPut.toSet();
+      for (final line in _kGermanRegionPreset) {
+        if (existingPutSet.add(line)) existingPut.add(line);
+      }
+      _regionPutController.text = existingPut.join('\n');
+
+      final allowed = _regionNames(_regionAllowedController.text).toSet()
+        ..add('de');
       _regionAllowedController.text = allowed.join('\n');
     });
   }
@@ -611,6 +650,7 @@ class _SerialConfigWizardDialogState extends State<SerialConfigWizardDialog> {
                     onChanged: () => setState(() {}),
                     onFind: _findRegion,
                     onUseLookup: _useLookupCode,
+                    onAddGermanPreset: _addGermanRegionPreset,
                   )
                 else
                   for (final key in _wizardSteps[i].keys)
@@ -816,6 +856,7 @@ class _RegionWizardFields extends StatelessWidget {
     required this.onChanged,
     required this.onFind,
     required this.onUseLookup,
+    required this.onAddGermanPreset,
     required this.busy,
     this.dbInfo,
     this.dbProvinces,
@@ -833,6 +874,7 @@ class _RegionWizardFields extends StatelessWidget {
   final VoidCallback onChanged;
   final VoidCallback onFind;
   final VoidCallback onUseLookup;
+  final VoidCallback onAddGermanPreset;
   final bool busy;
   final String? dbInfo;
   final String? dbProvinces;
@@ -905,21 +947,30 @@ class _RegionWizardFields extends StatelessWidget {
         _RegionTextField(
           controller: homeController,
           label: 'Home region',
-          hint: 'nl-nh-bov',
+          hint: 'nl-nh-bov or de-nw',
           onChanged: onChanged,
         ),
         SizedBox(height: gap),
         _RegionTextField(
           controller: defaultController,
           label: 'Default scope',
-          hint: 'nl or <null>',
+          hint: 'nl, de or <null>',
           onChanged: onChanged,
+        ),
+        SizedBox(height: gap),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: onAddGermanPreset,
+            icon: const Icon(Icons.add_location_alt, size: 18),
+            label: const Text('Add German states'),
+          ),
         ),
         SizedBox(height: gap),
         _RegionTextField(
           controller: putController,
           label: 'Create / move regions',
-          hint: 'one per line: nl-nh-bov nl-nh',
+          hint: 'one per line: nl-nh-bov nl-nh, de-nw de',
           minLines: 2,
           maxLines: 5,
           onChanged: onChanged,
@@ -928,7 +979,7 @@ class _RegionWizardFields extends StatelessWidget {
         _RegionTextField(
           controller: allowedController,
           label: 'Allowed flood regions',
-          hint: 'one per line: nl, nl-nh, nl-nh-bov',
+          hint: 'one per line: nl, de, nl-nh, de-nw',
           minLines: 3,
           maxLines: 6,
           onChanged: onChanged,
