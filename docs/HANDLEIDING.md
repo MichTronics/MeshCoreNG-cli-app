@@ -1,6 +1,6 @@
 # MeshCLI NG — Handleiding
 
-> 🇬🇧 English version: [README.md](../README.md)
+> 🇬🇧 English version: [README.md](../README.md) · 🇩🇪 Deutsche Version: [ANLEITUNG.md](ANLEITUNG.md)
 
 Een Flutter-console-app voor MeshCoreNG-repeaters en companion-radio's.  
 Verbind via **USB-serieel**, **BLE** of **TCP** en stuur CLI-commando's naar je mesh-knooppunt — op Android, Linux en Windows.
@@ -175,7 +175,7 @@ Type `help` om alle beschikbare firmware-commando's te zien.
 | Logging | `log start` · `log stop` · `log` · `log erase` |
 | Sensoren | `sensor get <sleutel>` · `sensor set <sleutel> <waarde>` · `sensor list` |
 | GPS | `gps` · `gps on\|off` · `gps sync` · `gps setloc` · `gps advert` |
-| Regio's | `region` · `region list` · `region get/put/remove` · … |
+| Regio's | `region` · `region list` · `region get/put/remove` · `regiondb find` · … |
 | Energie | `powersaving on\|off` · `reboot` · `poweroff` · `start ota` |
 | Toegang | `get acl` · `setperm <pubkey> <rechten>` · `password <wachtwoord>` |
 | TCP-brug | `get wifi.status` → WiFi-status, IP-adres, RSSI, serververbinding |
@@ -191,6 +191,7 @@ Zodra je verbonden bent verschijnt de knop **Config** in de werkbalk. Klik erop 
 - Elk veld dat je wijzigt oranje markeert
 - Bij **Apply changes** alleen de gewijzigde `set`-commando's naar het apparaat stuurt en ✓ of ✗ per parameter laat zien
 - **WiFi- en brug-instellingen** herkent die een herstart vereisen: na het toepassen verschijnt een waarschuwingsbanner met een knop **Reboot now**
+- Een stap **Regio's** bevat voor home/default scope, flood allow/deny-lijsten, Nederlandse locatie-lookup en een preset die `de` plus alle 16 Duitse deelstaten toevoegt
 
 **Parametergroepen in het configuratiepaneel:**
 
@@ -203,6 +204,7 @@ Zodra je verbonden bent verschijnt de knop **Config** in de werkbalk. Klik erop 
 | Access | `guest.password` · `allow.read.only` |
 | TCP Bridge | `bridge.enabled` · `wifi.ssid` · `wifi.password` · `bridge.server` · `bridge.port` · `bridge.delay` |
 | ESPNow Bridge | `bridge.source` · `bridge.baud` · `bridge.channel` · `bridge.secret` |
+| Regio's | `region home` · `region default` · `region allowf/denyf` · `region put` · `regiondb find` |
 
 Het wifi-wachtwoordveld is alleen schrijven (wordt nooit van het apparaat opgehaald). Laat het leeg om het huidige wachtwoord ongewijzigd te laten.  
 Alle TCP Bridge- en ESPNow Bridge-instellingen vereisen een herstart van het apparaat voordat ze actief worden.

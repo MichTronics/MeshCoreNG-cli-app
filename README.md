@@ -1,6 +1,6 @@
 # MeshCLI NG
 
-> 🇳🇱 Nederlandse versie: [docs/HANDLEIDING.md](docs/HANDLEIDING.md)
+> 🇳🇱 Nederlandse versie: [docs/HANDLEIDING.md](docs/HANDLEIDING.md) · 🇩🇪 Deutsche Version: [docs/ANLEITUNG.md](docs/ANLEITUNG.md)
 
 A Flutter console app for [MeshCoreNG](https://github.com/meshcore-dev) repeaters and companion radios.  
 Connect over **USB serial**, **BLE**, or **TCP**, send CLI commands, and configure your mesh node — on Android, Linux, and Windows.
@@ -172,7 +172,7 @@ Type `help` to see all available firmware commands.
 | Logging | `log start` · `log stop` · `log` · `log erase` |
 | Sensors | `sensor get <key>` · `sensor set <key> <val>` · `sensor list` |
 | GPS | `gps` · `gps on\|off` · `gps sync` · `gps setloc` · `gps advert` |
-| Regions | `region` · `region list` · `region get/put/remove` · … |
+| Regions | `region` · `region list` · `region get/put/remove` · `regiondb find` · … |
 | Power | `powersaving on\|off` · `reboot` · `poweroff` · `start ota` |
 | Access | `get acl` · `setperm <pubkey> <perm>` · `password <pwd>` |
 | TCP bridge | `get wifi.status` → WiFi state, IP address, RSSI, server connection |
@@ -188,6 +188,7 @@ After connecting, a **Config** button appears in the toolbar. Click it — or ty
 - Highlights any field you change with an orange tint
 - On **Apply changes**, sends only the modified `set` commands to the device and shows ✓ or ✗ per parameter
 - Recognises **WiFi / bridge settings** that require a reboot: after applying them a warning banner appears with a **Reboot now** button
+- Includes a **Regions** step for home/default scope, flood allow/deny lists, Dutch location lookup, and a preset that adds `de` plus all 16 German states
 
 **Parameter sections in the config panel:**
 
@@ -200,6 +201,7 @@ After connecting, a **Config** button appears in the toolbar. Click it — or ty
 | Access | `guest.password` · `allow.read.only` |
 | TCP Bridge | `bridge.enabled` · `wifi.ssid` · `wifi.password` · `bridge.server` · `bridge.port` · `bridge.delay` |
 | ESPNow Bridge | `bridge.source` · `bridge.baud` · `bridge.channel` · `bridge.secret` |
+| Regions | `region home` · `region default` · `region allowf/denyf` · `region put` · `regiondb find` |
 
 WiFi password fields are write-only (never fetched from the device). Leave blank to keep the current password unchanged.  
 All TCP Bridge and ESPNow Bridge settings require a device reboot before they take effect.
