@@ -14,8 +14,8 @@ MeshCLI NG gives you a terminal-style console for MeshCoreNG devices in three mo
 | Mode | What it connects to | Transport |
 |---|---|---|
 | **Companion** | A companion radio running the MeshCore companion firmware | BLE · USB · TCP |
-| **Remote** | A remote repeater reached via the companion over the mesh | (via companion) |
-| **-r Serial** | A repeater connected directly over USB serial | USB serial |
+| **Repeater Remote** | A remote repeater reached via the companion over the mesh | (via companion) |
+| **Repeater Serial** | A repeater connected directly over USB serial | USB serial |
 
 The app has no messaging UI and no node browser — it is a focused CLI console. In direct serial mode it also includes an interactive **configuration panel** that reads all settings from the device, lets you edit them, and sends only the changed values.
 
@@ -120,26 +120,26 @@ Connected! Device: MyNode  version 1.0.0-80abfbb  freq: 869.6180 MHz
 
 ---
 
-### 2 — Remote mode
+### 2 — Repeater Remote mode
 
 Sends CLI commands to a **remote repeater** over the mesh, relayed through your companion radio.
 
-1. Switch to the **Remote** tab
+1. Switch to the **Repeater Remote** tab
 2. Connect your companion radio first (see Companion mode above)
 3. Paste the remote repeater's **public key** (or the first few hex bytes as a prefix) into the key field
 4. Type any firmware CLI command and press **Send**
 
 The command is delivered over the mesh and the response is shown in the console.  
-Type `help` for the full list of supported remote commands.
+Type `help` for the full list of supported Repeater Remote commands.
 
 ---
 
-### 3 — Direct serial (-r Serial)
+### 3 — Repeater Serial
 
 Connects directly to a **repeater via USB serial**, bypassing the companion radio entirely.  
 This is equivalent to `meshcore-cli -r -s /dev/ttyACM0`.
 
-1. Switch to the **-r Serial** tab
+1. Switch to the **Repeater Serial** tab
 2. Press **Scan** to list serial ports
 3. Select the port of your repeater
 4. The app connects, queries the device name and firmware version, and shows:

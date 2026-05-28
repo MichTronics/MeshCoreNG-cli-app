@@ -106,7 +106,8 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
         final session = ref.read(meshSessionProvider);
         final destination = _targetController.text.trim();
         if (destination.isEmpty) {
-          throw ArgumentError('Remote mode needs a public key or prefix');
+          throw ArgumentError(
+              'Repeater Remote mode needs a public key or prefix');
         }
         final event = await session.send(
           MeshCommands.remoteCli(
@@ -327,7 +328,7 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
                       controller: _targetController,
                       decoration: const InputDecoration(
                         prefixIcon: Icon(Icons.key),
-                        labelText: 'Remote repeater public key/prefix hex',
+                        labelText: 'Repeater Remote public key/prefix hex',
                       ),
                     ),
                   ),
@@ -645,7 +646,7 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
   }
 
   void _showRemoteHelp() {
-    _i('=== Remote repeater mode (commands sent via mesh) ===');
+    _i('=== Repeater Remote mode (commands sent via mesh) ===');
     _i('  ver · board · clock · reboot · poweroff · start ota');
     _i('  advert · advert.zerohop · discover.neighbors');
     _i('  neighbors · neighbor.remove <pubkey>');
@@ -672,7 +673,7 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
   }
 
   void _showSerialHelp() {
-    _i('=== Direct serial repeater CLI (MeshCoreNG firmware) ===');
+    _i('=== Repeater Serial CLI (MeshCoreNG firmware) ===');
     _i('');
     _i('System:');
     _i('  ver · board · reboot · poweroff · shutdown · start ota');
@@ -771,11 +772,11 @@ class _ModeControl extends StatelessWidget {
             ),
             DropdownMenuItem(
               value: ConsoleMode.repeater,
-              child: Text('Remote'),
+              child: Text('Repeater Remote'),
             ),
             DropdownMenuItem(
               value: ConsoleMode.directSerialRepeater,
-              child: Text('-r Serial'),
+              child: Text('Repeater Serial'),
             ),
           ],
           onChanged: busy
@@ -797,11 +798,11 @@ class _ModeControl extends StatelessWidget {
         ButtonSegment(
             value: ConsoleMode.repeater,
             icon: Icon(Icons.settings_input_antenna),
-            label: Text('Remote')),
+            label: Text('Repeater Remote')),
         ButtonSegment(
             value: ConsoleMode.directSerialRepeater,
             icon: Icon(Icons.cable),
-            label: Text('-r Serial')),
+            label: Text('Repeater Serial')),
       ],
       selected: {mode},
       onSelectionChanged: busy ? null : (value) => onChanged(value.first),

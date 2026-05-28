@@ -14,8 +14,8 @@ MeshCLI NG geeft je een terminalvenster voor MeshCoreNG-apparaten in drie modi:
 | Modus | Verbinding met | Transport |
 |---|---|---|
 | **Companion** | Een companion-radio met MeshCore companion-firmware | BLE · USB · TCP |
-| **Remote** | Een verre repeater bereikt via de companion over het mesh | (via companion) |
-| **-r Serieel** | Een repeater direct via USB-serieel | USB-serieel |
+| **Repeater Remote** | Een verre repeater bereikt via de companion over het mesh | (via companion) |
+| **Repeater Serieel** | Een repeater direct via USB-serieel | USB-serieel |
 
 De app heeft geen chat-interface en geen contactenlijst — het is een compacte CLI-console. In de directe serieel-modus zit ook een interactief **configuratiepaneel** waarmee je alle instellingen van je repeater kunt ophalen, aanpassen en terugsturen.
 
@@ -121,28 +121,28 @@ Connected! Device: MijnNode  version 1.0.0-80abfbb  freq: 869.6180 MHz
 
 ---
 
-### Modus 2 — Remote
+### Modus 2 — Repeater Remote
 
 Stuurt CLI-commando's naar een **verre repeater** via het mesh-netwerk, doorgegeven door je companion-radio.
 
 **Stappen:**
-1. Klik op het tabblad **Remote**
+1. Klik op het tabblad **Repeater Remote**
 2. Verbind eerst je companion-radio (zie hierboven)
 3. Plak de **publieke sleutel** van de verre repeater in het sleutelveld (of de eerste paar hex-bytes als prefix)
 4. Typ een firmware-CLI-commando en druk op **Send**
 
 Het commando wordt via het mesh afgeleverd en de reactie verschijnt in de console.  
-Type `help` voor de volledige lijst van ondersteunde remote-commando's.
+Type `help` voor de volledige lijst van ondersteunde Repeater Remote-commando's.
 
 ---
 
-### Modus 3 — Direct serieel (-r Serieel)
+### Modus 3 — Repeater Serieel
 
 Verbindt rechtstreeks met een **repeater via USB-serieel**, zonder tussenkomst van een companion-radio.  
 Dit is gelijkwaardig aan `meshcore-cli -r -s /dev/ttyACM0`.
 
 **Stappen:**
-1. Klik op het tabblad **-r Serial**
+1. Klik op het tabblad **Repeater Serieel**
 2. Druk op **Scan** om de beschikbare seriële poorten te zoeken
 3. Selecteer de poort van je repeater
 4. De app verbindt, vraagt de apparaatnaam en firmware-versie op, en toont:
@@ -264,7 +264,7 @@ De app gebruikt de systeemtijd van de pc/telefoon. Zorg dat die correct is inges
 Verbind eerst in Companion-modus en typ `nodes` — de lijst toont alle bekende knooppunten met hun publieke sleutel (of prefix).
 
 **De Config-knop is niet zichtbaar**  
-De Config-knop verschijnt alleen in de **-r Serial**-modus nadat je verbonden bent met een repeater.
+De Config-knop verschijnt alleen in de **Repeater Serieel**-modus nadat je verbonden bent met een repeater.
 
 **WiFi-instellingen werken niet direct na het opslaan**  
 WiFi- en brugconfiguratie wordt pas actief na een herstart van het apparaat. Het configuratiepaneel laat dit weten en biedt de knop **Reboot now** aan.

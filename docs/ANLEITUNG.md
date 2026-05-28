@@ -14,8 +14,8 @@ MeshCLI NG bietet ein Terminalfenster für MeshCoreNG-Geräte in drei Modi:
 | Modus | Verbindung zu | Transport |
 |---|---|---|
 | **Companion** | Ein Companion-Radio mit MeshCore-Companion-Firmware | BLE · USB · TCP |
-| **Remote** | Ein entfernter Repeater, erreichbar über den Companion im Mesh | (über Companion) |
-| **-r Serial** | Ein Repeater direkt über USB seriell | USB seriell |
+| **Repeater Remote** | Ein entfernter Repeater, erreichbar über den Companion im Mesh | (über Companion) |
+| **Repeater Serial** | Ein Repeater direkt über USB seriell | USB seriell |
 
 Die App hat keine Chat-Oberfläche und keine Kontaktliste. Sie ist eine kompakte CLI-Konsole. Im direkten seriellen Modus gibt es außerdem ein interaktives **Konfigurationspanel**, mit dem du alle Einstellungen deines Repeaters auslesen, bearbeiten und zurückschreiben kannst.
 
@@ -122,28 +122,28 @@ Connected! Device: MeinNode  version 1.0.0-80abfbb  freq: 869.6180 MHz
 
 ---
 
-### Modus 2 — Remote
+### Modus 2 — Repeater Remote
 
 Sendet CLI-Befehle an einen **entfernten Repeater** über das Mesh-Netzwerk, weitergeleitet durch dein Companion-Radio.
 
 **Schritte:**
-1. Klicke auf den Tab **Remote**
+1. Klicke auf den Tab **Repeater Remote**
 2. Verbinde zuerst dein Companion-Radio (siehe oben)
 3. Füge den **öffentlichen Schlüssel** des entfernten Repeaters in das Schlüsselfeld ein (oder die ersten Hex-Bytes als Prefix)
 4. Gib einen Firmware-CLI-Befehl ein und drücke **Send**
 
 Der Befehl wird über das Mesh ausgeliefert und die Antwort erscheint in der Konsole.  
-`help` zeigt die vollständige Liste unterstützter Remote-Befehle.
+`help` zeigt die vollständige Liste unterstützter Repeater-Remote-Befehle.
 
 ---
 
-### Modus 3 — Direkt seriell (-r Serial)
+### Modus 3 — Repeater Serial
 
 Verbindet direkt mit einem **Repeater über USB seriell**, ohne Companion-Radio dazwischen.  
 Das entspricht `meshcore-cli -r -s /dev/ttyACM0`.
 
 **Schritte:**
-1. Klicke auf den Tab **-r Serial**
+1. Klicke auf den Tab **Repeater Serial**
 2. Drücke **Scan**, um verfügbare serielle Ports zu suchen
 3. Wähle den Port deines Repeaters
 4. Die App verbindet, fragt Gerätename und Firmware-Version ab und zeigt:
@@ -267,7 +267,7 @@ Die App verwendet die Systemzeit des PCs/Telefons. Stelle sicher, dass sie korre
 Verbinde zuerst im Companion-Modus und gib `nodes` ein. Die Liste zeigt alle bekannten Knoten mit öffentlichem Schlüssel (oder Prefix).
 
 **Die Config-Schaltfläche ist nicht sichtbar**  
-Die Config-Schaltfläche erscheint nur im **-r Serial**-Modus, nachdem du mit einem Repeater verbunden bist.
+Die Config-Schaltfläche erscheint nur im **Repeater Serial**-Modus, nachdem du mit einem Repeater verbunden bist.
 
 **WiFi-Einstellungen wirken nicht direkt nach dem Speichern**  
 WiFi- und Brückenkonfiguration wird erst nach einem Neustart des Geräts aktiv. Das Konfigurationspanel weist darauf hin und bietet die Schaltfläche **Reboot now** an.
