@@ -74,3 +74,4 @@ Desktop.ini
 migrate_working_dir/
 docs/docs.txt
 
+.vscode/settings.json
