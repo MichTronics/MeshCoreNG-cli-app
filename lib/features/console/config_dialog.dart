@@ -70,6 +70,7 @@ const _kSections = <_Section>[
     _Param('agc.reset.interval', 'AGC reset interval', unit: 's'),
   ]),
   _Section('Access', <_Param>[
+    _Param('admin.password', 'Admin password', isSecret: true),
     _Param('guest.password', 'Guest password'),
     _Param('allow.read.only', 'Allow read-only', options: ['on', 'off']),
   ]),
@@ -197,7 +198,7 @@ const _wizardSteps = <_WizardStep>[
     'flood.dup.suppress',
     'malformed.drop',
   ]),
-  _WizardStep('Access', ['guest.password', 'allow.read.only']),
+  _WizardStep('Access', ['admin.password', 'guest.password', 'allow.read.only']),
   _WizardStep('Bridge', [
     'bridge.enabled',
     'wifi.ssid',

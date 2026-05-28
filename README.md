@@ -199,12 +199,12 @@ After connecting, a **Config** button appears in the toolbar. Click it — or ty
 | Radio | `freq` · `bw` · `sf` · `cr` · `tx` · `af` · `repeat` · `dutycycle` · `radio.rxgain` |
 | Advertising | `advert.interval` · `flood.advert.interval` |
 | Flood / Routing | `flood.max` · `flood.advert.base` · `flood.relay.prob` · `flood.dynamic.enable` · `path.hash.mode` · `loop.detect` · `multi.acks` · `int.thresh` · `rxdelay` · `txdelay` · `direct.txdelay` · `agc.reset.interval` |
-| Access | `guest.password` · `allow.read.only` |
+| Access | admin password (`password <pwd>`) · `guest.password` · `allow.read.only` |
 | TCP Bridge | `bridge.enabled` · `wifi.ssid` · `wifi.password` · `bridge.server` · `bridge.port` · `bridge.delay` |
 | ESPNow Bridge | `bridge.source` · `bridge.baud` · `bridge.channel` · `bridge.secret` |
 | Regions | `region home` · `region default` · `region allowf/denyf` · `region put` · `regiondb find` |
 
-WiFi password fields are write-only (never fetched from the device). Leave blank to keep the current password unchanged.  
+Admin, WiFi and bridge secret fields are write-only (never fetched from the device). Leave blank to keep the current value unchanged.
 All TCP Bridge and ESPNow Bridge settings require a device reboot before they take effect.
 
 ---

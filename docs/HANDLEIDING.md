@@ -202,12 +202,12 @@ Zodra je verbonden bent verschijnt de knop **Config** in de werkbalk. Klik erop 
 | Radio | `freq` · `bw` · `sf` · `cr` · `tx` · `af` · `repeat` · `dutycycle` · `radio.rxgain` |
 | Advertising | `advert.interval` · `flood.advert.interval` |
 | Flood / Routing | `flood.max` · `flood.advert.base` · `flood.relay.prob` · `flood.dynamic.enable` · `path.hash.mode` · `loop.detect` · `multi.acks` · `int.thresh` · `rxdelay` · `txdelay` · `direct.txdelay` · `agc.reset.interval` |
-| Access | `guest.password` · `allow.read.only` |
+| Access | admin-wachtwoord (`password <wachtwoord>`) · `guest.password` · `allow.read.only` |
 | TCP Bridge | `bridge.enabled` · `wifi.ssid` · `wifi.password` · `bridge.server` · `bridge.port` · `bridge.delay` |
 | ESPNow Bridge | `bridge.source` · `bridge.baud` · `bridge.channel` · `bridge.secret` |
 | Regio's | `region home` · `region default` · `region allowf/denyf` · `region put` · `regiondb find` |
 
-Het wifi-wachtwoordveld is alleen schrijven (wordt nooit van het apparaat opgehaald). Laat het leeg om het huidige wachtwoord ongewijzigd te laten.  
+Admin-, wifi- en bridge-secretvelden zijn alleen schrijven (worden nooit van het apparaat opgehaald). Laat ze leeg om de huidige waarde ongewijzigd te laten.
 Alle TCP Bridge- en ESPNow Bridge-instellingen vereisen een herstart van het apparaat voordat ze actief worden.
 
 ---

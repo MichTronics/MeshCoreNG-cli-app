@@ -203,12 +203,12 @@ Sobald du verbunden bist, erscheint die Schaltfläche **Config** in der Werkzeug
 | Radio | `freq` · `bw` · `sf` · `cr` · `tx` · `af` · `repeat` · `dutycycle` · `radio.rxgain` |
 | Advertising | `advert.interval` · `flood.advert.interval` |
 | Flood / Routing | `flood.max` · `flood.advert.base` · `flood.relay.prob` · `flood.dynamic.enable` · `path.hash.mode` · `loop.detect` · `multi.acks` · `int.thresh` · `rxdelay` · `txdelay` · `direct.txdelay` · `agc.reset.interval` |
-| Access | `guest.password` · `allow.read.only` |
+| Access | Admin-Passwort (`password <passwort>`) · `guest.password` · `allow.read.only` |
 | TCP Bridge | `bridge.enabled` · `wifi.ssid` · `wifi.password` · `bridge.server` · `bridge.port` · `bridge.delay` |
 | ESPNow Bridge | `bridge.source` · `bridge.baud` · `bridge.channel` · `bridge.secret` |
 | Regionen | `region home` · `region default` · `region allowf/denyf` · `region put` · `regiondb find` |
 
-Das WiFi-Passwortfeld ist nur schreibend (es wird nie vom Gerät gelesen). Lass es leer, um das aktuelle Passwort unverändert zu lassen.  
+Admin-, WiFi- und Bridge-Secret-Felder sind nur schreibend (sie werden nie vom Gerät gelesen). Lass sie leer, um den aktuellen Wert unverändert zu lassen.
 Alle TCP-Bridge- und ESPNow-Bridge-Einstellungen benötigen einen Neustart des Geräts, bevor sie aktiv werden.
 
 ---

@@ -605,7 +605,9 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
         builder: (_) => SerialConfigDialog(
           deviceName: deviceName,
           queryParam: (key) => _queryRawSerial(console, 'get $key'),
-          setParam: (key, value) => _queryRawSerial(console, 'set $key $value'),
+          setParam: (key, value) => key == 'admin.password'
+              ? _queryRawSerial(console, 'password $value')
+              : _queryRawSerial(console, 'set $key $value'),
           sendCommand: (cmd) => console.sendLine(cmd),
         ),
       );
@@ -627,7 +629,9 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
           deviceName: deviceName,
           queryParam: (key) => _queryRawSerial(console, 'get $key'),
           queryCommand: (cmd) => _queryRegionAwareRawSerial(console, cmd),
-          setParam: (key, value) => _queryRawSerial(console, 'set $key $value'),
+          setParam: (key, value) => key == 'admin.password'
+              ? _queryRawSerial(console, 'password $value')
+              : _queryRawSerial(console, 'set $key $value'),
           sendCommand: (cmd) => console.sendLine(cmd),
         ),
       );
