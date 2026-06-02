@@ -9,7 +9,8 @@ Uint8List _bytes(List<int> values) => Uint8List.fromList(values);
 class MeshCommands {
   static MeshCommand appStart() => MeshCommand(
         name: 'info',
-        payload: _bytes([MeshCommandType.appStart.code, 0x03, ...'      mccli'.codeUnits]),
+        payload: _bytes(
+            [MeshCommandType.appStart.code, 0x03, ...'      mccli'.codeUnits]),
         expected: [MeshPacketType.selfInfo, MeshPacketType.error],
       );
 
@@ -41,7 +42,8 @@ class MeshCommands {
 
   static MeshCommand setName(String name) => MeshCommand(
         name: 'set name',
-        payload: _bytes([MeshCommandType.setAdvertName.code, ...utf8.encode(name)]),
+        payload:
+            _bytes([MeshCommandType.setAdvertName.code, ...utf8.encode(name)]),
         expected: [MeshPacketType.ok, MeshPacketType.error],
       );
 
@@ -49,7 +51,46 @@ class MeshCommands {
     final value = ByteData(4)..setInt32(0, dbm, Endian.little);
     return MeshCommand(
       name: 'set tx',
-      payload: _bytes([MeshCommandType.setRadioTxPower.code, ...value.buffer.asUint8List()]),
+      payload: _bytes([
+        MeshCommandType.setRadioTxPower.code,
+        ...value.buffer.asUint8List()
+      ]),
+      expected: [MeshPacketType.ok, MeshPacketType.error],
+    );
+  }
+
+  static MeshCommand setDeviceTime({DateTime? timestamp}) {
+    final ts = (timestamp ?? DateTime.now()).millisecondsSinceEpoch ~/ 1000;
+    final tsBytes = ByteData(4)..setUint32(0, ts, Endian.little);
+    return MeshCommand(
+      name: 'clock sync',
+      payload: _bytes([
+        MeshCommandType.setDeviceTime.code,
+        ...tsBytes.buffer.asUint8List()
+      ]),
+      expected: [MeshPacketType.ok, MeshPacketType.error],
+    );
+  }
+
+  static MeshCommand sendSelfAdvert({bool flood = true}) => MeshCommand(
+        name: flood ? 'advert' : 'advert.zerohop',
+        payload: _bytes([MeshCommandType.sendSelfAdvert.code, flood ? 1 : 0]),
+        expected: [MeshPacketType.ok, MeshPacketType.error],
+      );
+
+  static MeshCommand setAdvertLocation(
+      {required double lat, required double lon}) {
+    final latBytes = ByteData(4)
+      ..setInt32(0, (lat * 1000000).round(), Endian.little);
+    final lonBytes = ByteData(4)
+      ..setInt32(0, (lon * 1000000).round(), Endian.little);
+    return MeshCommand(
+      name: 'set location',
+      payload: _bytes([
+        MeshCommandType.setAdvertLatLon.code,
+        ...latBytes.buffer.asUint8List(),
+        ...lonBytes.buffer.asUint8List(),
+      ]),
       expected: [MeshPacketType.ok, MeshPacketType.error],
     );
   }
@@ -61,8 +102,10 @@ class MeshCommands {
     required int cr,
     bool? repeat,
   }) {
-    final freqBytes = ByteData(4)..setUint32(0, (freq * 1000).round(), Endian.little);
-    final bwBytes = ByteData(4)..setUint32(0, (bw * 1000).round(), Endian.little);
+    final freqBytes = ByteData(4)
+      ..setUint32(0, (freq * 1000).round(), Endian.little);
+    final bwBytes = ByteData(4)
+      ..setUint32(0, (bw * 1000).round(), Endian.little);
     return MeshCommand(
       name: 'set radio',
       payload: _bytes([
@@ -77,6 +120,12 @@ class MeshCommands {
     );
   }
 
+  static MeshCommand setPathHashMode(int mode) => MeshCommand(
+        name: 'set path hash mode',
+        payload: _bytes([MeshCommandType.setPathHashMode.code, 0x00, mode]),
+        expected: [MeshPacketType.ok, MeshPacketType.error],
+      );
+
   static MeshCommand getTime() => MeshCommand(
         name: 'clock',
         payload: _bytes([MeshCommandType.getDeviceTime.code]),
@@ -85,7 +134,8 @@ class MeshCommands {
 
   static MeshCommand reboot() => MeshCommand(
         name: 'reboot',
-        payload: _bytes([MeshCommandType.reboot.code, ...utf8.encode('reboot')]),
+        payload:
+            _bytes([MeshCommandType.reboot.code, ...utf8.encode('reboot')]),
         expected: [MeshPacketType.ok, MeshPacketType.error],
       );
 
@@ -120,15 +170,34 @@ class MeshCommands {
   static List<MeshCommand> companionConsole(String input) {
     final command = input.trim();
     final lower = command.toLowerCase();
-    if (lower == 'info' || lower == 'infos') return [appStart(), deviceQuery(), battery()];
-    if (lower == 'ver' || lower == 'version' || lower == 'firmware version') return [deviceQuery()];
-    if (lower == 'nodes' || lower == 'contacts' || lower == 'list' || lower == 'peers' || lower == 'routes') return [contacts()];
-    if (lower == 'clock' || lower == 'time' || lower == 'get time') return [getTime()];
+    if (lower == 'info' || lower == 'infos') {
+      return [appStart(), deviceQuery(), battery()];
+    }
+    if (lower == 'ver' || lower == 'version' || lower == 'firmware version') {
+      return [deviceQuery()];
+    }
+    if (lower == 'nodes' ||
+        lower == 'contacts' ||
+        lower == 'list' ||
+        lower == 'peers' ||
+        lower == 'routes') {
+      return [contacts()];
+    }
+    if (lower == 'clock' || lower == 'time' || lower == 'get time') {
+      return [getTime()];
+    }
     if (lower == 'bat' || lower == 'battery') return [battery()];
-    if (lower == 'stats' || lower == 'statistics') return [getStats(0), getStats(1), getStats(2)];
-    if (lower == 'stats core') return [getStats(0)];
-    if (lower == 'stats radio') return [getStats(1)];
-    if (lower == 'stats packets') return [getStats(2)];
+    if (lower == 'stats' || lower == 'statistics') {
+      return [getStats(0), getStats(1), getStats(2)];
+    }
+    if (lower == 'stats core' || lower == 'stats-core') return [getStats(0)];
+    if (lower == 'stats radio' || lower == 'stats-radio') return [getStats(1)];
+    if (lower == 'stats packets' || lower == 'stats-packets') {
+      return [getStats(2)];
+    }
+    if (lower == 'clock sync') return [setDeviceTime()];
+    if (lower == 'advert') return [sendSelfAdvert()];
+    if (lower == 'advert.zerohop') return [sendSelfAdvert(flood: false)];
     if (lower == 'reboot') return [reboot()];
     throw ArgumentError('Unsupported local companion command: $command');
   }
@@ -137,9 +206,11 @@ class MeshCommands {
 Uint8List _publicKeyPrefix(String value, {required int bytes}) {
   final normalized = value.trim().replaceAll(RegExp(r'[^0-9a-fA-F]'), '');
   if (normalized.length < bytes * 2) {
-    throw ArgumentError('Public key/prefix must contain at least $bytes bytes of hex');
+    throw ArgumentError(
+        'Public key/prefix must contain at least $bytes bytes of hex');
   }
   return Uint8List.fromList([
-    for (var i = 0; i < bytes; i++) int.parse(normalized.substring(i * 2, i * 2 + 2), radix: 16),
+    for (var i = 0; i < bytes; i++)
+      int.parse(normalized.substring(i * 2, i * 2 + 2), radix: 16),
   ]);
 }

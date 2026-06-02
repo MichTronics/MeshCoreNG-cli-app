@@ -241,6 +241,32 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
       _append('RX', _eventText(event));
       return;
     }
+    if (key == 'lat' || key == 'lon') {
+      final info = await session.send(MeshCommands.appStart());
+      if (!mounted) return;
+      if (info.isError) {
+        _append('ERR', _eventText(info));
+        return;
+      }
+      final lat = key == 'lat'
+          ? double.parse(value)
+          : (info.payload['adv_lat'] as num).toDouble();
+      final lon = key == 'lon'
+          ? double.parse(value)
+          : (info.payload['adv_lon'] as num).toDouble();
+      final event = await session
+          .send(MeshCommands.setAdvertLocation(lat: lat, lon: lon));
+      if (!mounted) return;
+      _append('RX', _eventText(event));
+      return;
+    }
+    if (key == 'path.hash.mode') {
+      final event =
+          await session.send(MeshCommands.setPathHashMode(int.parse(value)));
+      if (!mounted) return;
+      _append('RX', _eventText(event));
+      return;
+    }
     if (key == 'freq' ||
         key == 'bw' ||
         key == 'sf' ||
@@ -571,6 +597,11 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
       'sf' => payload['radio_sf'],
       'cr' => payload['radio_cr'],
       'tx' => payload['tx_power'],
+      'lat' => payload['adv_lat'],
+      'lon' => payload['adv_lon'],
+      'multi.acks' => payload['multi_acks'],
+      'advert.loc.policy' || 'adv.loc.policy' => payload['adv_loc_policy'],
+      'manual.add.contacts' => payload['manual_add_contacts'],
       'public.key' || 'public_key' => payload['public_key'],
       'firmware' ||
       'ver' ||
@@ -646,20 +677,27 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('  ver                – firmware version only');
     _i('  nodes              – contact list');
     _i('  clock              – device time');
+    _i('  clock sync         – set device time from this app');
     _i('  bat                – battery & storage');
     _i('  stats [core|radio|packets]  – statistics');
+    _i('  advert             – send flood self-advert');
+    _i('  advert.zerohop     – send zero-hop self-advert');
     _i('  reboot             – reboot device');
     _i('');
-    _i('  get <param>:  name · freq · bw · sf · cr · tx · public.key');
-    _i('               firmware · repeat · path.hash.mode · battery · time');
+    _i('  get <param>:  name · freq · bw · sf · cr · tx · lat · lon');
+    _i('               public.key · firmware · repeat · path.hash.mode');
+    _i('               multi.acks · advert.loc.policy · battery · time');
     _i('');
     _i('  set name <text>      – node name');
     _i('  set tx <dBm>         – TX power');
+    _i('  set lat <deg>        – advertised latitude');
+    _i('  set lon <deg>        – advertised longitude');
     _i('  set freq <MHz>       – frequency');
     _i('  set bw <kHz>         – bandwidth');
     _i('  set sf <n>           – spreading factor (5–12)');
     _i('  set cr <n>           – coding rate (5–8)');
     _i('  set repeat on|off    – packet forwarding');
+    _i('  set path.hash.mode <0-2>');
   }
 
   void _showRemoteHelp() {
@@ -668,6 +706,10 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('  advert · advert.zerohop · discover.neighbors');
     _i('  neighbors · neighbor.remove <pubkey>');
     _i('  stats-core · stats-radio · stats-packets');
+    _i('  get spam.stats · get repeater.health · get repeater.status');
+    _i('  get atlas.stats · observer export json');
+    _i('  atlas enable|position|neighbors|pathsample|export <on|off>');
+    _i('  set reboot.daily <on|off> · set reboot.interval <1-168> · get reboot');
     _i('  sensor get <key> · sensor set <key> <val> · sensor list');
     _i('  region [list|get|put|remove|home|default|allowf|denyf|load|save]');
     _i('  gps · gps on|off · gps sync · gps setloc · gps advert [none|share|prefs]');
@@ -677,11 +719,12 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('  get <param>:  name · freq · bw · sf · cr · tx · af · role · repeat');
     _i('               lat · lon · public.key · advert.interval · flood.advert.interval');
     _i('               flood.max · flood.advert.base · flood.relay.prob · flood.dynamic.enable');
+    _i('               flood.node.delay · flood.dup.suppress · malformed.drop');
     _i('               path.hash.mode · loop.detect · multi.acks · int.thresh');
     _i('               guest.password · allow.read.only · owner.info');
     _i('               rxdelay · txdelay · direct.txdelay · dutycycle · adc.multiplier');
     _i('               bridge.type · bridge.enabled · bridge.delay · bridge.source');
-    _i('               bridge.baud · bridge.channel · bridge.secret');
+    _i('               bridge.rf · bridge.baud · bridge.channel · bridge.secret');
     _i('               wifi.ssid · bridge.server · bridge.port');
     _i('               wifi.status  – TCP bridge: WiFi connected, IP, RSSI, server state');
     _i('');
@@ -705,6 +748,11 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('Statistics:');
     _i('  stats-core · stats-radio · stats-packets');
     _i('  clear stats · clear dense.stats · clear power.stats');
+    _i('  get dense.stats · get spam.stats · clear spam.stats');
+    _i('  get repeater.health · get repeater.status');
+    _i('  get atlas.stats · observer export json');
+    _i('  atlas enable|position|neighbors|pathsample|export <on|off>');
+    _i('  set reboot.daily <on|off> · set reboot.interval <1-168> · get reboot');
     _i('');
     _i('Logging:');
     _i('  log start · log stop · log · log erase');
@@ -730,13 +778,14 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('  lat · lon · public.key · prv.key (serial only)');
     _i('  advert.interval · flood.advert.interval · flood.max');
     _i('  flood.advert.base · flood.relay.prob · flood.dynamic.enable');
+    _i('  flood.node.delay · flood.dup.suppress · malformed.drop');
     _i('  path.hash.mode · loop.detect · multi.acks · int.thresh · agc.reset.interval');
     _i('  rxdelay · txdelay · direct.txdelay · dutycycle · adc.multiplier');
     _i('  guest.password · allow.read.only · owner.info · radio · radio.rxgain');
-    _i('  bridge.type · bridge.enabled · bridge.delay · bridge.source · bridge.baud');
+    _i('  bridge.type · bridge.enabled · bridge.delay · bridge.source · bridge.rf · bridge.baud');
     _i('  bridge.channel · bridge.secret · wifi.ssid · wifi.password');
     _i('  bridge.server · bridge.port · wifi.status (TCP bridge: WiFi+IP+RSSI+server state)');
-    _i('  dense.stats · power.stats · bootloader.ver · pwrmgt.*  (hardware specific)');
+    _i('  dense.stats · spam.stats · atlas.stats · power.stats · bootloader.ver · pwrmgt.*');
     _i('');
     _i('set <param> <value>:');
     _i('  name <text>          tx <dBm>             freq <MHz>');
@@ -746,6 +795,8 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('  advert.interval <min>                     flood.advert.interval <h>');
     _i('  flood.max <n>        flood.advert.base <0.0-1.0>');
     _i('  flood.relay.prob <0-255>                  flood.dynamic.enable on|off');
+    _i('  flood.node.delay on|off                   flood.dup.suppress on|off');
+    _i('  malformed.drop on|off');
     _i('  path.hash.mode <0-2> loop.detect off|minimal|moderate|strict');
     _i('  multi.acks 0|1       int.thresh <n>       agc.reset.interval <s>');
     _i('  rxdelay <ms>         txdelay <factor>     direct.txdelay <factor>');
@@ -753,7 +804,8 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('  owner.info <text>    adc.multiplier <0.0-10.0>  prv.key <hex>');
     _i('  radio <freq> <bw> <sf> <cr>');
     _i('  bridge.enabled on|off  bridge.delay <ms>  bridge.source tx|rx');
-    _i('  bridge.baud <rate>   bridge.channel <1-14>  bridge.secret <s>');
+    _i('  bridge.rf on|off     bridge.baud <rate>   bridge.channel <1-14>');
+    _i('  bridge.secret <s>');
     _i('  wifi.ssid <ssid>     wifi.password <pwd>');
     _i('  bridge.server <addr> bridge.port <1-65535>');
   }
@@ -976,6 +1028,12 @@ String _describeCliCommand(String command) {
     return 'Reset spam and malformed public-chat counters.';
   if (lower == 'clear power.stats')
     return 'Reset power-management runtime counters.';
+  if (lower == 'get atlas.stats')
+    return 'Read Atlas dense-mesh export counters.';
+  if (lower == 'observer export json')
+    return 'Export Atlas observer events as JSON when Atlas export is enabled.';
+  if (lower.startsWith('atlas '))
+    return 'Configure Atlas export features: enable, position, neighbors, pathsample or export.';
   if (lower == 'log start')
     return 'Start capturing the receive log to node storage.';
   if (lower == 'log stop') return 'Stop receive-log capture.';
@@ -1118,6 +1176,8 @@ String _describeGetCommand(String key) {
   if (key == 'bridge.delay') return 'Read bridge delay in milliseconds.';
   if (key == 'bridge.source')
     return 'Read which bridge log stream is used as packet source.';
+  if (key == 'bridge.rf')
+    return 'Read whether received bridge flood packets may be forwarded on RF.';
   if (key == 'bridge.baud') return 'Read RS232 bridge baud rate.';
   if (key == 'bridge.channel') return 'Read ESPNow WiFi channel.';
   if (key == 'bridge.secret') return 'Read ESPNow shared secret.';
@@ -1146,6 +1206,15 @@ String _describeGetCommand(String key) {
     return 'Read reset and shutdown reason on supported boards.';
   if (key == 'pwrmgt.bootmv')
     return 'Read boot voltage in millivolts on supported boards.';
+  if (key == 'atlas.stats') return 'Read Atlas dense-mesh counters.';
+  if (key == 'atlas' || key == 'atlas.enable')
+    return 'Read whether Atlas is enabled.';
+  if (key == 'atlas.position') return 'Read Atlas position export state.';
+  if (key == 'atlas.neighbors') return 'Read Atlas neighbor export state.';
+  if (key == 'atlas.pathsample')
+    return 'Read Atlas path-sampling state and percentage.';
+  if (key == 'atlas.export') return 'Read Atlas observer export state.';
+  if (key == 'reboot') return 'Read daily reboot settings.';
   return 'Read the current value for this firmware configuration key.';
 }
 
@@ -1207,6 +1276,8 @@ String _describeSetCommand(String expression) {
   if (key == 'bridge.delay') return 'Set bridge delay in milliseconds.';
   if (key == 'bridge.source')
     return 'Set bridge packet source direction, usually tx or rx.';
+  if (key == 'bridge.rf')
+    return 'Allow or block bridge-received flood packets from forwarding on RF.';
   if (key == 'bridge.baud') return 'Set RS232 bridge baud rate.';
   if (key == 'bridge.channel') return 'Set ESPNow WiFi channel from 1 to 14.';
   if (key == 'bridge.secret') return 'Set ESPNow shared secret.';
@@ -1218,6 +1289,18 @@ String _describeSetCommand(String expression) {
   if (key == 'bridge.port') return 'Set TCP bridge server port.';
   if (key == 'adc.multiplier')
     return 'Set battery ADC calibration multiplier, if supported by the board.';
+  if (key == 'atlas' ||
+      key == 'atlas.enable' ||
+      key == 'atlas.position' ||
+      key == 'atlas.neighbors' ||
+      key == 'atlas.pathsample' ||
+      key == 'atlas.export') {
+    return 'Configure Atlas export features.';
+  }
+  if (key == 'reboot.daily')
+    return 'Enable or disable daily uptime-based reboot on supported repeater builds.';
+  if (key == 'reboot.interval')
+    return 'Set daily reboot interval in hours, from 1 to 168.';
   return 'Set this firmware configuration key to the value shown in the command.';
 }
 
@@ -1318,7 +1401,10 @@ const _companionCategories = <_CliCommandCategory>[
     _CliCommandAction('ver', 'ver'),
     _CliCommandAction('nodes', 'nodes'),
     _CliCommandAction('clock', 'clock'),
+    _CliCommandAction('clock sync', 'clock sync'),
     _CliCommandAction('bat', 'bat'),
+    _CliCommandAction('advert', 'advert'),
+    _CliCommandAction('zero hop', 'advert.zerohop'),
   ]),
   _CliCommandCategory('Stats', [
     _CliCommandAction('stats', 'stats'),
@@ -1333,20 +1419,26 @@ const _companionCategories = <_CliCommandCategory>[
     _CliCommandAction('sf', 'get sf'),
     _CliCommandAction('cr', 'get cr'),
     _CliCommandAction('tx', 'get tx'),
+    _CliCommandAction('lat', 'get lat'),
+    _CliCommandAction('lon', 'get lon'),
     _CliCommandAction('public.key', 'get public.key'),
     _CliCommandAction('firmware', 'get firmware'),
     _CliCommandAction('repeat', 'get repeat'),
     _CliCommandAction('path.hash', 'get path.hash.mode'),
+    _CliCommandAction('multi acks', 'get multi.acks'),
   ]),
   _CliCommandCategory('Set', [
     _CliCommandAction('name', 'set name '),
     _CliCommandAction('tx', 'set tx 20'),
+    _CliCommandAction('lat', 'set lat 52.0'),
+    _CliCommandAction('lon', 'set lon 5.0'),
     _CliCommandAction('freq', 'set freq 869.5'),
     _CliCommandAction('bw', 'set bw 250'),
     _CliCommandAction('sf', 'set sf 10'),
     _CliCommandAction('cr', 'set cr 5'),
     _CliCommandAction('repeat on', 'set repeat on'),
     _CliCommandAction('repeat off', 'set repeat off'),
+    _CliCommandAction('path hash', 'set path.hash.mode 1'),
   ]),
   _CliCommandCategory('System', [
     _CliCommandAction('reboot', 'reboot'),
@@ -1380,6 +1472,8 @@ const _remoteCategories = <_CliCommandCategory>[
     _CliCommandAction('spam', 'get spam.stats'),
     _CliCommandAction('health', 'get repeater.health'),
     _CliCommandAction('status', 'get repeater.status'),
+    _CliCommandAction('atlas stats', 'get atlas.stats'),
+    _CliCommandAction('atlas export', 'observer export json'),
   ]),
   _CliCommandCategory('Config get', [
     _CliCommandAction('name', 'get name'),
@@ -1399,6 +1493,7 @@ const _remoteCategories = <_CliCommandCategory>[
     _CliCommandAction('owner', 'get owner.info'),
     _CliCommandAction('guest pass', 'get guest.password'),
     _CliCommandAction('read only', 'get allow.read.only'),
+    _CliCommandAction('daily reboot', 'get reboot'),
   ]),
   _CliCommandCategory('Config set', [
     _CliCommandAction('name', 'set name '),
@@ -1410,7 +1505,9 @@ const _remoteCategories = <_CliCommandCategory>[
     _CliCommandAction('lon', 'set lon 5.0'),
     _CliCommandAction('owner', 'set owner.info '),
     _CliCommandAction('bridge on', 'set bridge.enabled on'),
+    _CliCommandAction('bridge rf', 'set bridge.rf on'),
     _CliCommandAction('wifi ssid', 'set wifi.ssid '),
+    _CliCommandAction('daily reboot', 'set reboot.daily on'),
   ]),
   _CliCommandCategory('Routing get', [
     _CliCommandAction('advert', 'get advert.interval'),
@@ -1464,6 +1561,9 @@ const _remoteCategories = <_CliCommandCategory>[
     _CliCommandAction('regiondb find', 'regiondb find '),
     _CliCommandAction('regiondb get', 'regiondb get '),
     _CliCommandAction('regiondb code', 'regiondb code '),
+    _CliCommandAction('atlas on', 'atlas enable on'),
+    _CliCommandAction('atlas export', 'atlas export on'),
+    _CliCommandAction('atlas path', 'atlas pathsample 5'),
     _CliCommandAction('gps', 'gps'),
     _CliCommandAction('gps on', 'gps on'),
     _CliCommandAction('gps sync', 'gps sync'),
@@ -1540,6 +1640,8 @@ const _serialCategories = <_CliCommandCategory>[
     _CliCommandAction('spam', 'get spam.stats'),
     _CliCommandAction('health', 'get repeater.health'),
     _CliCommandAction('status', 'get repeater.status'),
+    _CliCommandAction('atlas stats', 'get atlas.stats'),
+    _CliCommandAction('atlas export', 'observer export json'),
   ]),
   _CliCommandCategory('Set', [
     _CliCommandAction('name', 'set name '),
@@ -1605,6 +1707,7 @@ const _serialCategories = <_CliCommandCategory>[
     _CliCommandAction('get enabled', 'get bridge.enabled'),
     _CliCommandAction('get delay', 'get bridge.delay'),
     _CliCommandAction('get source', 'get bridge.source'),
+    _CliCommandAction('get rf', 'get bridge.rf'),
     _CliCommandAction('get baud', 'get bridge.baud'),
     _CliCommandAction('get channel', 'get bridge.channel'),
     _CliCommandAction('get secret', 'get bridge.secret'),
@@ -1617,6 +1720,8 @@ const _serialCategories = <_CliCommandCategory>[
     _CliCommandAction('delay', 'set bridge.delay 1000'),
     _CliCommandAction('source tx', 'set bridge.source tx'),
     _CliCommandAction('source rx', 'set bridge.source rx'),
+    _CliCommandAction('rf on', 'set bridge.rf on'),
+    _CliCommandAction('rf off', 'set bridge.rf off'),
     _CliCommandAction('wifi ssid', 'set wifi.ssid '),
     _CliCommandAction('wifi pass', 'set wifi.password '),
     _CliCommandAction('server', 'set bridge.server '),
@@ -1656,6 +1761,12 @@ const _serialCategories = <_CliCommandCategory>[
     _CliCommandAction('regiondb find', 'regiondb find '),
     _CliCommandAction('regiondb get', 'regiondb get '),
     _CliCommandAction('regiondb code', 'regiondb code '),
+    _CliCommandAction('atlas on', 'atlas enable on'),
+    _CliCommandAction('atlas position', 'atlas position on'),
+    _CliCommandAction('atlas neighbors', 'atlas neighbors on'),
+    _CliCommandAction('atlas path', 'atlas pathsample 5'),
+    _CliCommandAction('atlas export', 'atlas export on'),
+    _CliCommandAction('observer json', 'observer export json'),
   ]),
   _CliCommandCategory('Access', [
     _CliCommandAction('get guest', 'get guest.password'),
@@ -1665,6 +1776,8 @@ const _serialCategories = <_CliCommandCategory>[
     _CliCommandAction('guest pass', 'set guest.password '),
     _CliCommandAction('read only on', 'set allow.read.only on'),
     _CliCommandAction('read only off', 'set allow.read.only off'),
+    _CliCommandAction('daily reboot', 'set reboot.daily on'),
+    _CliCommandAction('reboot interval', 'set reboot.interval 24'),
   ]),
   _CliCommandCategory('Hardware specific', [
     _CliCommandAction('get dense', 'get dense.stats'),
