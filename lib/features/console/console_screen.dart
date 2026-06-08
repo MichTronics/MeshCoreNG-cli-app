@@ -718,7 +718,8 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('');
     _i('  get <param>:  name · freq · bw · sf · cr · tx · af · role · repeat');
     _i('               lat · lon · public.key · advert.interval · flood.advert.interval');
-    _i('               flood.max · flood.advert.base · flood.relay.prob · flood.dynamic.enable');
+    _i('               flood.max · flood.max.advert · flood.max.unscoped');
+    _i('               flood.advert.base · flood.relay.prob · flood.dynamic.enable');
     _i('               flood.node.delay · flood.dup.suppress · malformed.drop');
     _i('               path.hash.mode · loop.detect · multi.acks · int.thresh');
     _i('               guest.password · allow.read.only · owner.info');
@@ -776,12 +777,12 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('get <param>:');
     _i('  name · freq · bw · sf · cr · tx · af · role · repeat');
     _i('  lat · lon · public.key · prv.key (serial only)');
-    _i('  advert.interval · flood.advert.interval · flood.max');
+    _i('  advert.interval · flood.advert.interval · flood.max · flood.max.advert · flood.max.unscoped');
     _i('  flood.advert.base · flood.relay.prob · flood.dynamic.enable');
     _i('  flood.node.delay · flood.dup.suppress · malformed.drop');
     _i('  path.hash.mode · loop.detect · multi.acks · int.thresh · agc.reset.interval');
     _i('  rxdelay · txdelay · direct.txdelay · dutycycle · adc.multiplier');
-    _i('  guest.password · allow.read.only · owner.info · radio · radio.rxgain');
+    _i('  guest.password · allow.read.only · owner.info · radio · radio.rxgain · radio.fem.rxgain');
     _i('  bridge.type · bridge.enabled · bridge.delay · bridge.source · bridge.rf · bridge.baud');
     _i('  bridge.channel · bridge.secret · wifi.ssid · wifi.password');
     _i('  bridge.server · bridge.port · wifi.status (TCP bridge: WiFi+IP+RSSI+server state)');
@@ -791,9 +792,10 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _i('  name <text>          tx <dBm>             freq <MHz>');
     _i('  bw <kHz>             sf <5-12>            cr <5-8>');
     _i('  af <factor>          lat <deg>            lon <deg>');
-    _i('  repeat on|off        dutycycle <%>        radio.rxgain on|off');
+    _i('  repeat on|off        dutycycle <%>        radio.rxgain on|off  radio.fem.rxgain on|off');
     _i('  advert.interval <min>                     flood.advert.interval <h>');
-    _i('  flood.max <n>        flood.advert.base <0.0-1.0>');
+    _i('  flood.max <n>        flood.max.advert <n>  flood.max.unscoped <n>');
+    _i('  flood.advert.base <0.0-1.0>');
     _i('  flood.relay.prob <0-255>                  flood.dynamic.enable on|off');
     _i('  flood.node.delay on|off                   flood.dup.suppress on|off');
     _i('  malformed.drop on|off');
@@ -1125,6 +1127,8 @@ String _describeGetCommand(String key) {
   if (key == 'tx') return 'Read the LoRa transmit power in dBm.';
   if (key == 'radio.rxgain')
     return 'Read boosted RX gain state on supported SX126x boards.';
+  if (key == 'radio.fem.rxgain')
+    return 'Read external FEM RX gain state on boards with an FEM, such as Heltec V4.3. Returns an error on unsupported boards.';
   if (key == 'name') return 'Read the node display name.';
   if (key == 'lat') return 'Read the saved latitude.';
   if (key == 'lon') return 'Read the saved longitude.';
@@ -1154,6 +1158,10 @@ String _describeGetCommand(String key) {
   if (key == 'flood.advert.interval')
     return 'Read flood advert interval in hours.';
   if (key == 'flood.max') return 'Read maximum flood hop count.';
+  if (key == 'flood.max.advert')
+    return 'Read maximum flood hop count for advertisement packets (default 8).';
+  if (key == 'flood.max.unscoped')
+    return 'Read maximum flood hop count for unscoped packets (no region set). 0xFF means it tracks flood.max.';
   if (key == 'flood.advert.base')
     return 'Read flood-advert forwarding probability base.';
   if (key == 'flood.relay.prob')
@@ -1230,6 +1238,8 @@ String _describeSetCommand(String expression) {
   if (key == 'tx') return 'Set LoRa transmit power in dBm.';
   if (key == 'radio.rxgain')
     return 'Enable or disable boosted RX gain on supported SX126x boards.';
+  if (key == 'radio.fem.rxgain')
+    return 'Enable or disable external FEM RX gain on boards that have one, such as Heltec V4.3. Returns an error on unsupported boards.';
   if (key == 'name') return 'Set the node display name.';
   if (key == 'lat') return 'Set saved latitude in degrees.';
   if (key == 'lon') return 'Set saved longitude in degrees.';
@@ -1258,6 +1268,10 @@ String _describeSetCommand(String expression) {
   if (key == 'flood.advert.interval')
     return 'Set flood advert interval in hours.';
   if (key == 'flood.max') return 'Set maximum flood hop count.';
+  if (key == 'flood.max.advert')
+    return 'Set maximum flood hop count for advertisement packets (0–64, default 8).';
+  if (key == 'flood.max.unscoped')
+    return 'Set maximum flood hop count for unscoped packets (0–64). Useful for limiting noisy neighbors without blocking scoped traffic.';
   if (key == 'flood.advert.base')
     return 'Set flood-advert forwarding probability base from 0 to 1.';
   if (key == 'flood.relay.prob')
@@ -1508,11 +1522,14 @@ const _remoteCategories = <_CliCommandCategory>[
     _CliCommandAction('bridge rf', 'set bridge.rf on'),
     _CliCommandAction('wifi ssid', 'set wifi.ssid '),
     _CliCommandAction('daily reboot', 'set reboot.daily on'),
+    _CliCommandAction('fem rxgain on', 'set radio.fem.rxgain on'),
   ]),
   _CliCommandCategory('Routing get', [
     _CliCommandAction('advert', 'get advert.interval'),
     _CliCommandAction('flood advert', 'get flood.advert.interval'),
     _CliCommandAction('flood max', 'get flood.max'),
+    _CliCommandAction('advert max', 'get flood.max.advert'),
+    _CliCommandAction('unscoped max', 'get flood.max.unscoped'),
     _CliCommandAction('flood base', 'get flood.advert.base'),
     _CliCommandAction('flood prob', 'get flood.relay.prob'),
     _CliCommandAction('dynamic', 'get flood.dynamic.enable'),
@@ -1657,6 +1674,8 @@ const _serialCategories = <_CliCommandCategory>[
     _CliCommandAction('dutycycle', 'set dutycycle 10'),
     _CliCommandAction('rxgain on', 'set radio.rxgain on'),
     _CliCommandAction('rxgain off', 'set radio.rxgain off'),
+    _CliCommandAction('fem rxgain on', 'set radio.fem.rxgain on'),
+    _CliCommandAction('fem rxgain off', 'set radio.fem.rxgain off'),
     _CliCommandAction('lat', 'set lat 52.0'),
     _CliCommandAction('lon', 'set lon 5.0'),
     _CliCommandAction('owner', 'set owner.info '),
@@ -1666,6 +1685,8 @@ const _serialCategories = <_CliCommandCategory>[
     _CliCommandAction('get advert', 'get advert.interval'),
     _CliCommandAction('get flood advert', 'get flood.advert.interval'),
     _CliCommandAction('get flood max', 'get flood.max'),
+    _CliCommandAction('get advert max', 'get flood.max.advert'),
+    _CliCommandAction('get unscoped max', 'get flood.max.unscoped'),
     _CliCommandAction('get flood base', 'get flood.advert.base'),
     _CliCommandAction('get flood prob', 'get flood.relay.prob'),
     _CliCommandAction('get dynamic', 'get flood.dynamic.enable'),
@@ -1683,6 +1704,8 @@ const _serialCategories = <_CliCommandCategory>[
     _CliCommandAction('advert min', 'set advert.interval 60'),
     _CliCommandAction('flood advert', 'set flood.advert.interval 6'),
     _CliCommandAction('flood max', 'set flood.max 5'),
+    _CliCommandAction('advert max', 'set flood.max.advert 8'),
+    _CliCommandAction('unscoped max', 'set flood.max.unscoped 3'),
     _CliCommandAction('flood base', 'set flood.advert.base 0.5'),
     _CliCommandAction('flood prob', 'set flood.relay.prob 255'),
     _CliCommandAction('dynamic on', 'set flood.dynamic.enable on'),
@@ -1784,6 +1807,7 @@ const _serialCategories = <_CliCommandCategory>[
     _CliCommandAction('get power', 'get power.stats'),
     _CliCommandAction('get adc', 'get adc.multiplier'),
     _CliCommandAction('set adc', 'set adc.multiplier 1.0'),
+    _CliCommandAction('get fem rxgain', 'get radio.fem.rxgain'),
     _CliCommandAction('pwr support', 'get pwrmgt.support'),
     _CliCommandAction('pwr source', 'get pwrmgt.source'),
     _CliCommandAction('boot reason', 'get pwrmgt.bootreason'),
