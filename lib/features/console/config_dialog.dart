@@ -75,14 +75,15 @@ const _kSections = <_Section>[
     _Param('allow.read.only', 'Allow read-only', options: ['on', 'off']),
   ]),
   _Section('TCP Bridge', <_Param>[
-    _Param('bridge.enabled', 'Bridge enabled',
-        options: ['on', 'off'], requiresReboot: true),
+    _Param('bridge.enabled', 'Bridge enabled', options: ['on', 'off']),
     _Param('wifi.ssid', 'WiFi SSID', requiresReboot: true),
     _Param('wifi.password', 'WiFi password',
         isSecret: true, requiresReboot: true),
-    _Param('bridge.server', 'Server address', requiresReboot: true),
-    _Param('bridge.port', 'Server port', requiresReboot: true),
-    _Param('bridge.delay', 'Bridge delay', unit: 'ms', requiresReboot: true),
+    _Param('bridge.server', 'Server address'),
+    _Param('bridge.port', 'Server port'),
+    _Param('bridge.password', 'Bridge auth password', isSecret: true),
+    _Param('bridge.rf', 'Forward on RF', options: ['on', 'off']),
+    _Param('bridge.delay', 'Bridge delay', unit: 'ms'),
   ]),
   _Section('ESPNow Bridge', <_Param>[
     _Param('bridge.source', 'Source direction',
@@ -1115,6 +1116,425 @@ class _WizardInput extends StatelessWidget {
     );
   }
 }
+
+// ─── TCP Bridge wizard ────────────────────────────────────────
+
+class TcpBridgeWizardDialog extends StatefulWidget {
+  const TcpBridgeWizardDialog({
+    super.key,
+    required this.deviceName,
+    required this.queryParam,
+    required this.setParam,
+    required this.sendCommand,
+  });
+
+  final String deviceName;
+  final Future<String?> Function(String key) queryParam;
+  final Future<String?> Function(String key, String value) setParam;
+  final Future<void> Function(String command) sendCommand;
+
+  @override
+  State<TcpBridgeWizardDialog> createState() => _TcpBridgeWizardDialogState();
+}
+
+enum _BridgePhase { checking, unsupported, loading, editing, applying, done }
+
+const _tcpBridgeSteps = <_WizardStep>[
+  _WizardStep('WiFi', ['wifi.ssid', 'wifi.password']),
+  _WizardStep('Bridge server', ['bridge.server', 'bridge.port', 'bridge.password']),
+  _WizardStep('Options', ['bridge.enabled', 'bridge.rf', 'bridge.source']),
+];
+
+class _TcpBridgeWizardDialogState extends State<TcpBridgeWizardDialog> {
+  late final Map<String, _Entry> _entries;
+  _BridgePhase _phase = _BridgePhase.checking;
+  String? _bridgeType;
+  String? _wifiStatus;
+  int _step = 0;
+  int _changedCount = 0;
+  bool _rebootNeeded = false;
+  final _results = <String, bool>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _entries = {
+      for (final step in _tcpBridgeSteps)
+        for (final key in step.keys)
+          key: _Entry(_paramsByKey[key]!),
+    };
+    _checkAndLoad();
+  }
+
+  @override
+  void dispose() {
+    for (final e in _entries.values) {
+      e.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _checkAndLoad() async {
+    final bridgeType = await widget.queryParam('bridge.type');
+    if (!mounted) return;
+    if (bridgeType?.toLowerCase().contains('tcp') != true) {
+      setState(() {
+        _bridgeType = bridgeType ?? 'none';
+        _phase = _BridgePhase.unsupported;
+      });
+      return;
+    }
+    setState(() {
+      _bridgeType = bridgeType;
+      _phase = _BridgePhase.loading;
+    });
+
+    for (final entry in _entries.values) {
+      if (!mounted) return;
+      if (entry.param.isSecret) continue;
+      String? value = await widget.queryParam(entry.param.key);
+      if (!mounted) return;
+      // normalize bridge.source: firmware returns "logTx"/"logRx"/"both",
+      // but set expects "tx"/"rx"
+      if (entry.param.key == 'bridge.source' && value != null) {
+        value = value.toLowerCase().contains('rx') ? 'rx' : 'tx';
+      }
+      setState(() => entry.init(value));
+    }
+
+    final wifiStatus = await widget.queryParam('wifi.status');
+    if (!mounted) return;
+
+    setState(() {
+      _wifiStatus = wifiStatus;
+      _phase = _BridgePhase.editing;
+    });
+  }
+
+  Future<void> _apply() async {
+    final toApply = _entries.values
+        .where((e) => e.changed && e.current.isNotEmpty)
+        .toList();
+    if (toApply.isEmpty) {
+      setState(() {
+        _changedCount = 0;
+        _phase = _BridgePhase.done;
+      });
+      return;
+    }
+    setState(() {
+      _phase = _BridgePhase.applying;
+      _changedCount = toApply.length;
+    });
+    for (final entry in toApply) {
+      if (!mounted) return;
+      final response = await widget.setParam(entry.param.key, entry.current);
+      if (!mounted) return;
+      final ok = response == null || !response.toLowerCase().contains('error');
+      setState(() {
+        _results[entry.param.key] = ok;
+        if (ok && entry.param.requiresReboot) _rebootNeeded = true;
+      });
+    }
+    if (mounted) setState(() => _phase = _BridgePhase.done);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Dialog(
+        insetPadding: EdgeInsets.all(MeshResponsive.pagePadding(context)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width < MeshResponsive.mobileMax
+                ? MediaQuery.sizeOf(context).width
+                : 680,
+            maxHeight: (MediaQuery.sizeOf(context).height -
+                    MediaQuery.paddingOf(context).vertical -
+                    MeshResponsive.pagePadding(context) * 2)
+                .clamp(360.0, 760.0),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHigh,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.wifi),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'TCP bridge wizard: ${widget.deviceName}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ]),
+              ),
+              Expanded(child: _buildBody(cs)),
+              _buildFooter(cs),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(ColorScheme cs) {
+    switch (_phase) {
+      case _BridgePhase.checking:
+        return const Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Checking bridge type…'),
+          ]),
+        );
+      case _BridgePhase.unsupported:
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.wifi_off, size: 48, color: Colors.orange),
+              const SizedBox(height: 12),
+              Text('TCP bridge not supported',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(
+                'Bridge type on this device: ${_bridgeType ?? 'none'}\n\n'
+                'A firmware build with WITH_TCP_BRIDGE is required.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ]),
+          ),
+        );
+      case _BridgePhase.loading:
+        return const Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading current bridge settings…'),
+          ]),
+        );
+      case _BridgePhase.applying:
+        return const Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Applying bridge settings…'),
+          ]),
+        );
+      case _BridgePhase.done:
+        final failed = _results.entries.where((e) => !e.value).length;
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(
+                failed == 0 ? Icons.check_circle_outline : Icons.error_outline,
+                size: 48,
+                color: failed == 0 ? Colors.green : Colors.orange,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                failed == 0
+                    ? 'TCP bridge configured successfully'
+                    : '$failed setting${failed == 1 ? '' : 's'} failed to apply',
+                textAlign: TextAlign.center,
+              ),
+            ]),
+          ),
+        );
+      case _BridgePhase.editing:
+        return Stepper(
+          currentStep: _step,
+          type: StepperType.vertical,
+          controlsBuilder: (_, __) => const SizedBox.shrink(),
+          onStepTapped: (i) => setState(() => _step = i),
+          steps: [
+            for (var i = 0; i < _tcpBridgeSteps.length; i++)
+              Step(
+                title: Text(_tcpBridgeSteps[i].title),
+                isActive: i == _step,
+                state: i < _step ? StepState.complete : StepState.indexed,
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (i == 0) ...[
+                      _RegionInfoBlock(
+                        title: 'Bridge type',
+                        text: _bridgeType ?? 'tcp',
+                      ),
+                      const SizedBox(height: 8),
+                      if ((_wifiStatus ?? '').isNotEmpty) ...[
+                        _RegionInfoBlock(
+                          title: 'Current WiFi / bridge status',
+                          text: _wifiStatus!,
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      const Text(
+                        'WiFi SSID and password require a reboot to take effect.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    if (i == 1)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'Default port is 4200. Leave bridge auth password blank if the server does not require one.',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ),
+                    if (i == 2)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'bridge.rf: allow packets received from the bridge server to be re-transmitted on RF.\n'
+                          'bridge.source: which packets are forwarded — tx = packets this node sends, rx = packets this node receives.',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ),
+                    for (final key in _tcpBridgeSteps[i].keys)
+                      _WizardField(
+                        entry: _entries[key]!,
+                        result: _results[key],
+                        onChanged: () => setState(() {}),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        );
+    }
+  }
+
+  Widget _buildFooter(ColorScheme cs) {
+    switch (_phase) {
+      case _BridgePhase.checking:
+      case _BridgePhase.loading:
+      case _BridgePhase.applying:
+        return const SizedBox.shrink();
+
+      case _BridgePhase.unsupported:
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ),
+        );
+
+      case _BridgePhase.done:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_rebootNeeded)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.12),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Row(children: [
+                  Icon(Icons.restart_alt, color: Colors.orange, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'WiFi credentials changed — reboot so the bridge can connect.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ]),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                spacing: MeshResponsive.gap(context),
+                runSpacing: MeshResponsive.gap(context),
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    '$_changedCount change${_changedCount == 1 ? '' : 's'} applied',
+                    style: TextStyle(color: cs.secondary),
+                  ),
+                  if (_rebootNeeded)
+                    FilledButton.icon(
+                      onPressed: () async {
+                        final nav = Navigator.of(context);
+                        await widget.sendCommand('reboot');
+                        nav.pop();
+                      },
+                      icon: const Icon(Icons.restart_alt, size: 18),
+                      label: const Text('Reboot now'),
+                    ),
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Done'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+      case _BridgePhase.editing:
+        final atStart = _step == 0;
+        final atEnd = _step == _tcpBridgeSteps.length - 1;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Wrap(
+            alignment: WrapAlignment.end,
+            spacing: MeshResponsive.gap(context),
+            runSpacing: MeshResponsive.gap(context),
+            children: [
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              OutlinedButton.icon(
+                onPressed: atStart ? null : () => setState(() => _step--),
+                icon: const Icon(Icons.chevron_left, size: 18),
+                label: const Text('Back'),
+              ),
+              if (!atEnd)
+                FilledButton.icon(
+                  onPressed: () => setState(() => _step++),
+                  icon: const Icon(Icons.chevron_right, size: 18),
+                  label: const Text('Next'),
+                )
+              else
+                FilledButton.icon(
+                  onPressed: _apply,
+                  icon: const Icon(Icons.check, size: 18),
+                  label: const Text('Apply'),
+                ),
+            ],
+          ),
+        );
+    }
+  }
+}
+
+// ─── Serial config dialog ─────────────────────────────────────
 
 class _SerialConfigDialogState extends State<SerialConfigDialog> {
   late final List<_Entry> _entries;

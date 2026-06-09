@@ -405,6 +405,8 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
                         _serialDeviceName != null ? _openSerialConfig : null,
                     onWizard:
                         _serialDeviceName != null ? _openSerialWizard : null,
+                    onBridgeWizard:
+                        _serialDeviceName != null ? _openBridgeWizard : null,
                   ),
                 if (_showCommands)
                   Padding(
@@ -681,6 +683,27 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
       _commandController.text = _savedInput;
       _commandController.selection =
           TextSelection.collapsed(offset: _savedInput.length);
+    }
+  }
+
+  Future<void> _openBridgeWizard() async {
+    if (_serialDeviceName == null) return;
+    final console = ref.read(rawSerialConsoleProvider);
+    final deviceName = _serialDeviceName!;
+    setState(() => _suppressRawLines = true);
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => TcpBridgeWizardDialog(
+          deviceName: deviceName,
+          queryParam: (key) => _queryRawSerial(console, 'get $key'),
+          setParam: (key, value) => _queryRawSerial(console, 'set $key $value'),
+          sendCommand: (cmd) => console.sendLine(cmd),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _suppressRawLines = false);
     }
   }
 
@@ -2003,6 +2026,7 @@ class _RawSerialToolbar extends StatelessWidget {
     required this.onDisconnect,
     this.onConfig,
     this.onWizard,
+    this.onBridgeWizard,
   });
 
   final List<MeshDevice> devices;
@@ -2013,6 +2037,7 @@ class _RawSerialToolbar extends StatelessWidget {
   final VoidCallback onDisconnect;
   final VoidCallback? onConfig;
   final VoidCallback? onWizard;
+  final VoidCallback? onBridgeWizard;
 
   @override
   Widget build(BuildContext context) {
@@ -2053,6 +2078,11 @@ class _RawSerialToolbar extends StatelessWidget {
                   onPressed: busy ? null : onWizard,
                   icon: const Icon(Icons.auto_fix_high),
                   label: const Text('Wizard')),
+            if (onBridgeWizard != null)
+              FilledButton.icon(
+                  onPressed: busy ? null : onBridgeWizard,
+                  icon: const Icon(Icons.wifi),
+                  label: const Text('TCP Bridge')),
             OutlinedButton.icon(
                 onPressed: busy || selected == null ? null : onDisconnect,
                 icon: const Icon(Icons.link_off),
