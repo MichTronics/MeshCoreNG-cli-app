@@ -31,7 +31,7 @@ class DutchRegionDb {
 
   static String info() {
     return 'Local Dutch region database: $entryCount locations, '
-        "${provinceCount} provinces. Source: MeshWiki Lijst van regio's.";
+        "$provinceCount provinces. Source: MeshWiki Lijst van regio's.";
   }
 
   static String provinces() {

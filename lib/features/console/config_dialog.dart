@@ -395,7 +395,7 @@ class _SerialConfigWizardDialogState extends State<SerialConfigWizardDialog> {
       final result = DutchRegionDb.find(prefix);
       if (!mounted) return;
       setState(() {
-        _regionLookupResult = result ?? 'No response';
+        _regionLookupResult = result;
         _regionLookupCode = _parseRegionDbPrimaryCode(result);
       });
     } finally {
