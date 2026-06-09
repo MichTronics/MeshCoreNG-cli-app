@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -43,10 +44,27 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
   bool _busy = false;
   bool _suppressRawLines = false;
   bool _showCommands = true;
+  final _history = <String>[];
+  int _historyIndex = -1;
+  String _savedInput = '';
 
   @override
   void initState() {
     super.initState();
+    _commandFocus.onKeyEvent = (node, event) {
+      if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+        return KeyEventResult.ignored;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        _historyUp();
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        _historyDown();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    };
     _eventSub = ref.listenManual(latestEventsProvider, (_, next) {
       if (!mounted) return;
       if (_mode == ConsoleMode.directSerialRepeater) return;
@@ -87,6 +105,12 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     if (_busy) return;
     if (text.isEmpty && _mode != ConsoleMode.directSerialRepeater) return;
     if (!mounted) return;
+    if (text.isNotEmpty && (_history.isEmpty || _history.last != text)) {
+      _history.add(text);
+      if (_history.length > 100) _history.removeAt(0);
+    }
+    _historyIndex = -1;
+    _savedInput = '';
     setState(() => _busy = true);
     final txLabel =
         _mode == ConsoleMode.directSerialRepeater && _serialDeviceName != null
@@ -148,7 +172,12 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
       if (!mounted) return;
       _append('ERR', '$error');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _commandFocus.requestFocus();
+        });
+      }
     }
   }
 
@@ -622,6 +651,37 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
     _commandController.selection =
         TextSelection.collapsed(offset: command.length);
     _commandFocus.requestFocus();
+  }
+
+  void _historyUp() {
+    if (_history.isEmpty) return;
+    if (_historyIndex == -1) {
+      _savedInput = _commandController.text;
+      _historyIndex = _history.length - 1;
+    } else if (_historyIndex > 0) {
+      _historyIndex--;
+    } else {
+      return;
+    }
+    final cmd = _history[_historyIndex];
+    _commandController.text = cmd;
+    _commandController.selection = TextSelection.collapsed(offset: cmd.length);
+  }
+
+  void _historyDown() {
+    if (_historyIndex == -1) return;
+    if (_historyIndex < _history.length - 1) {
+      _historyIndex++;
+      final cmd = _history[_historyIndex];
+      _commandController.text = cmd;
+      _commandController.selection =
+          TextSelection.collapsed(offset: cmd.length);
+    } else {
+      _historyIndex = -1;
+      _commandController.text = _savedInput;
+      _commandController.selection =
+          TextSelection.collapsed(offset: _savedInput.length);
+    }
   }
 
   Future<void> _openSerialConfig() async {
